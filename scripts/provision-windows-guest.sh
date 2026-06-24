@@ -151,15 +151,14 @@ main() {
       validate_host
       fetch_virtio
       create_disk
-      if fetch_windows_iso; then
-        set_phase install
-      else
+      if ! fetch_windows_iso; then
         set_phase prep
         log "prep complete — upload Win2022.iso or set WINDOWS_ISO_S3_URI then re-run"
         exit 0
       fi
-      phase="$(get_phase)"
-      ;;&
+      set_phase install
+      phase=install
+      ;;
     prep)
       if [[ ! -f "$WIN_ISO" ]] && ! fetch_windows_iso; then
         log "still no windows iso at ${WIN_ISO}"
@@ -167,7 +166,11 @@ main() {
       fi
       set_phase install
       phase=install
-      ;;&
+      ;;
+  esac
+
+  phase="$(get_phase)"
+  case "$phase" in
     install)
       start_install
       set_phase complete

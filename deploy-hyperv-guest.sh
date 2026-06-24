@@ -31,12 +31,14 @@ run_on_instance() {
   local cmd_id
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$iid" \
     --document-name AWS-RunShellScript \
-    --parameters "commands=[\"${env_prefix} aws s3 cp ${S3_PREFIX}/provision-windows-guest.sh /tmp/provision-windows-guest.sh && aws s3 cp ${S3_PREFIX}/autounattend.xml /tmp/autounattend.xml && aws s3 cp ${S3_PREFIX}/enable-hyperv.ps1 /tmp/enable-hyperv.ps1 && chmod +x /tmp/provision-windows-guest.sh && UNATTEND_TEMPLATE=/tmp/autounattend.xml ENABLE_HYPERV_PS1=/tmp/enable-hyperv.ps1 ${env_prefix} /tmp/provision-windows-guest.sh\"]" \
+    --timeout-seconds 7200 \
+    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/provision-windows-guest.sh /tmp/provision-windows-guest.sh && aws s3 cp ${S3_PREFIX}/autounattend.xml /tmp/autounattend.xml && aws s3 cp ${S3_PREFIX}/enable-hyperv.ps1 /tmp/enable-hyperv.ps1 && chmod +x /tmp/provision-windows-guest.sh && nohup env UNATTEND_TEMPLATE=/tmp/autounattend.xml ENABLE_HYPERV_PS1=/tmp/enable-hyperv.ps1 ${env_prefix} /tmp/provision-windows-guest.sh > /var/log/nested-virt-provision.log 2>&1 & echo started pid=\\$!\"]" \
     --query Command.CommandId --output text)
-  sleep 45
+  sleep 15
   aws ssm get-command-invocation --region "$AWS_REGION" \
     --command-id "$cmd_id" --instance-id "$iid" \
     --query '[Status,StandardOutputContent,StandardErrorContent]' --output text
+  echo "(Provisioning continues in background — tail /var/log/nested-virt-provision.log on host)"
 }
 
 run_on_instance "$SITE_0_INSTANCE_ID" "Site 0"
