@@ -1,0 +1,16 @@
+[
+  {"ParameterKey": "LaunchInstance", "ParameterValue": "true"},
+  {"ParameterKey": "KeyName", "ParameterValue": "arskeypair"},
+  {"ParameterKey": "VpcId", "ParameterValue": "vpc-1c42b87b"},
+  {"ParameterKey": "SubnetId", "ParameterValue": "subnet-736f0159"},
+  {"ParameterKey": "VpcCidr", "ParameterValue": "172.31.0.0/16"},
+  {"ParameterKey": "AdminCidr", "ParameterValue": "172.31.0.0/16"},
+  {"ParameterKey": "InstanceName", "ParameterValue": "nested-virt-s0-01"},
+  {"ParameterKey": "InstanceType", "ParameterValue": "c7i.metal-48xl"},
+  {"ParameterKey": "SiteId", "ParameterValue": "0"},
+  {"ParameterKey": "PeerTransportEniIp", "ParameterValue": ""},
+  {"ParameterKey": "PeerLabSupernet", "ParameterValue": ""},
+  {"ParameterKey": "RootNotifyEmail", "ParameterValue": "adrianr.sanmiguel@gmail.com"},
+  {"ParameterKey": "AssociatePublicIp", "ParameterValue": "true"},
+  {"ParameterKey": "AlarmPeriodSeconds", "ParameterValue": "120"}
+]
