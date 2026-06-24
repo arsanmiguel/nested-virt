@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
-  Nested virt POC — Amazon Linux 2023 c7i.metal-48xl, KVM, site-aware lab bridges,
-  transport ENIs for cross-AZ routing. Hyper-V guest is day-2 on the host.
+  Nested virt POC — Ubuntu 22.04 on c7i.metal-48xl, KVM, site-aware lab bridges,
+  transport ENIs for cross-AZ routing. (AL2023 lacks libvirt host packages in repos.)
 
 Parameters:
   LaunchInstance:
@@ -70,9 +70,9 @@ Parameters:
     Default: 120
     MinValue: 60
 
-  LinuxAmi:
+  UbuntuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+    Default: /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
 
   BootstrapBucket:
     Type: String
@@ -113,7 +113,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Condition: LaunchInstance
     Properties:
-      GroupDescription: Transport ENIs — VPC east-west only
+      GroupDescription: Transport ENIs - VPC east-west only
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: -1
@@ -191,7 +191,7 @@ Resources:
       - Ec2InstanceProfile
       - CloudWatchAgentConfigParameter
     Properties:
-      ImageId: !Ref LinuxAmi
+      ImageId: !Ref UbuntuAmi
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       IamInstanceProfile: !Ref Ec2InstanceProfile
@@ -206,12 +206,12 @@ Resources:
             - !Ref InstanceSecurityGroup
           AssociatePublicIpAddress: !If [UsePublicIp, true, false]
       BlockDeviceMappings:
-        - DeviceName: /dev/xvda
+        - DeviceName: /dev/sda1
           Ebs:
             VolumeSize: 200
             VolumeType: gp3
             DeleteOnTermination: true
-        - DeviceName: /dev/xvdb
+        - DeviceName: /dev/sdb
           Ebs:
             VolumeSize: 2048
             VolumeType: gp3

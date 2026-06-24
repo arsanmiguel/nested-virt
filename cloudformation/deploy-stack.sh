@@ -2,15 +2,18 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+_CALLER_SITE_ID="${SITE_ID:-}"
+_CALLER_AZ="${AVAILABILITY_ZONE:-${TARGET_AVAILABILITY_ZONE:-}}"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 
 LAUNCH_INSTANCE="${LAUNCH_INSTANCE:-true}"
 KEY_NAME="${KEY_NAME:-}"
 PARAMS_FILE="${PARAMS_FILE:-${SCRIPT_DIR}/parameters.json}"
-SITE_ID="${SITE_ID:-0}"
+SITE_ID="${_CALLER_SITE_ID:-0}"
 export SITE_ID
-export TARGET_AVAILABILITY_ZONE="${AVAILABILITY_ZONE:-${TARGET_AVAILABILITY_ZONE:-}}"
+export TARGET_AVAILABILITY_ZONE="${_CALLER_AZ:-us-east-1a}"
+export AVAILABILITY_ZONE="${TARGET_AVAILABILITY_ZONE}"
 
 if [[ "${AUTO_INCREMENT_STACK:-true}" == "true" ]]; then
   STACK_NAME="$("${SCRIPT_DIR}/resolve-stack-name.sh")"
@@ -40,6 +43,7 @@ if ! aws s3api head-bucket --bucket "${BOOTSTRAP_BUCKET}" >/dev/null 2>&1; then
 fi
 aws s3 cp "${ROOT}/bootstrap.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh" --region "${AWS_REGION}"
 aws s3 cp "${ROOT}/scripts/apply-peer-routes.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/apply-peer-routes.sh" --region "${AWS_REGION}"
+aws s3 cp "${ROOT}/scripts/fix-transport-routing.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/fix-transport-routing.sh" --region "${AWS_REGION}"
 echo "Uploaded s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh"
 
 python3 "${SCRIPT_DIR}/package-template.py"

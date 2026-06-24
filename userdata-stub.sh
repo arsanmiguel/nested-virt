@@ -17,7 +17,7 @@ REGION=$(curl -sf -X PUT http://169.254.169.254/latest/api/token \
   http://169.254.169.254/latest/meta-data/placement/region)
 log "region=${REGION}"
 
-command -v aws >/dev/null 2>&1 || dnf install -y awscli
+command -v aws >/dev/null 2>&1 || { apt-get update -y && apt-get install -y awscli curl unzip; }
 log "s3 cp begin s3://${BUCKET}/${KEY}"
 aws s3 cp "s3://${BUCKET}/${KEY}" "$BOOTSTRAP_SCRIPT" --region "$REGION"
 chmod +x "$BOOTSTRAP_SCRIPT"

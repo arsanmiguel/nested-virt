@@ -30,7 +30,7 @@ def aws(*args):
 
 ami = json.loads(
     aws("ssm", "get-parameter", "--name",
-        "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64")
+        "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id")
 )["Parameter"]["Value"]
 
 offered_az = {

@@ -14,12 +14,17 @@ fi
 : "${SITE_1_INSTANCE_ID:?}"
 
 ssm_ping() {
-  local src="$1" dst="$2" label="$3"
-  echo "--- ${label}: ping ${dst} from ${src} ---"
-  local cmd_id out
+  local src="$1" dst="$2" label="$3" bind_ip="${4:-}"
+  echo "--- ${label}: ping ${dst} from ${src} (bind=${bind_ip:-default}) ---"
+  local cmd_id out ping_cmd
+  if [[ -n "$bind_ip" ]]; then
+    ping_cmd="ping -c 3 -W 2 -I ${bind_ip} ${dst}"
+  else
+    ping_cmd="ping -c 3 -W 2 ${dst}"
+  fi
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$src" \
     --document-name AWS-RunShellScript \
-    --parameters "commands=[\"ping -c 3 -W 2 ${dst}\"]" \
+    --parameters "commands=[\"${ping_cmd}\"]" \
     --query Command.CommandId --output text)
   sleep 8
   out=$(aws ssm get-command-invocation --region "$AWS_REGION" \
@@ -36,13 +41,20 @@ ssm_ping() {
 FAIL=0
 
 if [[ "$LAYER" == "all" || "$LAYER" == "l0" ]]; then
-  ssm_ping "$SITE_0_INSTANCE_ID" "$SITE_1_TRANSPORT_IP" "L0-transport" || FAIL=1
-  ssm_ping "$SITE_1_INSTANCE_ID" "$SITE_0_TRANSPORT_IP" "L0-transport-reverse" || FAIL=1
+  : "${SITE_0_TRANSPORT_IP:?Run configure-peer-routing.sh}"
+  : "${SITE_1_TRANSPORT_IP:?Run configure-peer-routing.sh}"
+  ssm_ping "$SITE_0_INSTANCE_ID" "$SITE_1_TRANSPORT_IP" "L0-transport" "$SITE_0_TRANSPORT_IP" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "$SITE_0_TRANSPORT_IP" "L0-transport-reverse" "$SITE_1_TRANSPORT_IP" || FAIL=1
 fi
 
 if [[ "$LAYER" == "all" || "$LAYER" == "l1" ]]; then
-  ssm_ping "$SITE_0_INSTANCE_ID" "10.1.1.1" "L1-peer-lab-gateway" || FAIL=1
-  ssm_ping "$SITE_1_INSTANCE_ID" "10.0.1.1" "L1-peer-lab-gateway-reverse" || FAIL=1
+  echo "L1 (cross-site lab bridge) — VPC fabric does not carry 10.x; use --layer l1-local for host checks."
+  echo "Cross-site lab routing needs GRE/IPIP between transport ENIs (future)."
+fi
+
+if [[ "$LAYER" == "l1-local" ]]; then
+  ssm_ping "$SITE_0_INSTANCE_ID" "10.0.1.1" "L1-local-lab-gateway" "$SITE_0_TRANSPORT_IP" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "10.1.1.1" "L1-local-lab-gateway" "$SITE_1_TRANSPORT_IP" || FAIL=1
 fi
 
 if [[ "$LAYER" == "l2" ]]; then
