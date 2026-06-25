@@ -48,16 +48,8 @@
       publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <Interfaces>
         <Interface wcm:action="add">
-          <Identifier>Ethernet</Identifier>
-          <Ipv4Settings><DhcpEnabled>false</DhcpEnabled></Ipv4Settings>
-          <UnicastIpAddresses>
-            <IpAddress wcm:action="add" wcm:keyValue="1">GUEST_IP/24</IpAddress>
-          </UnicastIpAddresses>
-          <Routes>
-            <Route wcm:action="add">
-              <Identifier>0</Identifier><Prefix>0.0.0.0/0</Prefix><NextHopAddress>BR_GATEWAY</NextHopAddress>
-            </Route>
-          </Routes>
+          <Identifier>@*</Identifier>
+          <Ipv4Settings><DhcpEnabled>true</DhcpEnabled></Ipv4Settings>
         </Interface>
       </Interfaces>
     </component>
@@ -71,6 +63,16 @@
       <FirstLogonCommands>
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
+          <Description>Open lab firewall ICMP and WinRM</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "Enable-PSRemoting -Force -SkipNetworkProfileCheck; netsh advfirewall firewall add rule name='NestedVirt-ICMP-In' protocol=icmpv4:8,any dir=in action=allow remoteip=10.0.0.0/8; netsh advfirewall firewall add rule name='NestedVirt-WinRM-In' protocol=tcp dir=in localport=5985 action=allow remoteip=10.0.0.0/8; Enable-NetFirewallRule -DisplayGroup 'File and Printer Sharing'"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Description>Set guest lab IP if DHCP missed</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "$ip='GUEST_IP'; $gw='BR_GATEWAY'; if (-not (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $ip.Split('/')[0] })) { New-NetIPAddress -InterfaceAlias (Get-NetAdapter | Select-Object -First 1).Name -IPAddress $ip.Split('/')[0] -PrefixLength 24 -DefaultGateway $gw -ErrorAction SilentlyContinue }"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>3</Order>
           <Description>Enable Hyper-V</Description>
           <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "Install-WindowsFeature Hyper-V -IncludeManagementTools; if (-not (Get-WindowsFeature Hyper-V).Installed) { exit 1 }"</CommandLine>
         </SynchronousCommand>

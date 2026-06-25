@@ -10,7 +10,7 @@ VM_NAME="${VM_NAME:-win-hv-nested}"
 WIN_ISO="${IMAGES}/Win2022.iso"
 VIRTIO_ISO="${IMAGES}/virtio-win.iso"
 DISK="${IMAGES}/${VM_NAME}.qcow2"
-UNATTEND_ISO="${IMAGES}/autounattend.iso"
+UNATTEND_FLOPPY="${IMAGES}/autounattend.img"
 WINDOWS_ISO_S3_URI="${WINDOWS_ISO_S3_URI:-}"
 VIRTIO_ISO_URL="${VIRTIO_ISO_URL:-https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso}"
 
@@ -33,7 +33,7 @@ set_phase() { echo -n "$1" > "$PHASE_FILE"; }
 ensure_tools() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
-  apt-get install -y genisoimage wget curl qemu-utils
+  apt-get install -y dosfstools mtools wget curl qemu-utils dnsmasq
 }
 
 validate_host() {
@@ -72,7 +72,7 @@ fetch_windows_iso() {
   log "windows iso ready size=$(stat -c%s "$WIN_ISO")"
 }
 
-build_unattend_iso() {
+build_unattend_floppy() {
   local site_id="${1:-0}" guest_ip="10.${site_id}.1.10" gateway="10.${site_id}.1.1"
   local admin_pw pass_file="${STATE_DIR}/win-guest-admin-password"
   if [[ -f "$pass_file" ]]; then
@@ -94,9 +94,69 @@ build_unattend_iso() {
       -e "s/BR_GATEWAY/${gateway}/g" \
       -e "s/ADMIN_PASSWORD/${admin_pw}/g" \
       "$template" > "${staging}/autounattend.xml"
-  genisoimage -quiet -o "$UNATTEND_ISO" -J -r "${staging}"
+  rm -f "$UNATTEND_FLOPPY"
+  mkfs.vfat -C "$UNATTEND_FLOPPY" 1440
+  mcopy -i "$UNATTEND_FLOPPY" "${staging}/autounattend.xml" ::
   rm -rf "$staging"
-  log "unattend iso site_id=${site_id} guest_ip=${guest_ip} gateway=${gateway}"
+  log "unattend floppy site_id=${site_id} guest_ip=${guest_ip} gateway=${gateway}"
+}
+
+destroy_vm() {
+  if virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
+    log "destroy vm=${VM_NAME}"
+    virsh destroy "$VM_NAME" 2>/dev/null || true
+    virsh undefine "$VM_NAME" --nvram 2>/dev/null || true
+  fi
+  if [[ "${FORCE_REINSTALL:-0}" == "1" && -f "$DISK" ]]; then
+    log "remove disk ${DISK} for clean reinstall"
+    rm -f "$DISK"
+  fi
+}
+
+guest_mac_for_site() {
+  local site_id="${1:-0}"
+  printf '52:54:00:10:%02x:10' "$((10#${site_id}))"
+}
+
+setup_lab_dhcp() {
+  local site_id="${1:-0}" guest_ip="${2}" gateway="${3}" mac="${4}"
+  local conf=/etc/nested-virt-dnsmasq.conf
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get install -y dnsmasq
+  cat > "$conf" <<EOF
+port=0
+interface=br-default
+bind-interfaces
+dhcp-host=${mac},${guest_ip},set:nested-guest,infinite
+dhcp-option=tag:nested-guest,3,${gateway}
+dhcp-option=tag:nested-guest,6,${gateway}
+EOF
+  pkill -f "${conf}" 2>/dev/null || true
+  nohup dnsmasq -C "$conf" --pid-file=/run/nested-virt-dnsmasq.pid \
+    >> /var/log/nested-virt-provision.log 2>&1 &
+  ip link set br-default up 2>/dev/null || true
+  log "lab dhcp site=${site_id} mac=${mac} ip=${guest_ip} gw=${gateway}"
+}
+
+start_cdrom_eject_watcher() {
+  local site_id="${1:-0}" guest_ip="10.${site_id}.1.10"
+  nohup bash -c "
+    vm='${VM_NAME}'
+    guest_ip='${guest_ip}'
+    for _ in \$(seq 1 90); do
+      sleep 60
+      ping -c1 -W2 \"\$guest_ip\" >/dev/null 2>&1 && exit 0
+      cpu1=\$(virsh dominfo \"\$vm\" 2>/dev/null | awk '/CPU time/ {print \$3}' | tr -d s)
+      sleep 30
+      cpu2=\$(virsh dominfo \"\$vm\" 2>/dev/null | awk '/CPU time/ {print \$3}' | tr -d s)
+      if [[ -n \"\$cpu1\" && -n \"\$cpu2\" ]] && awk \"BEGIN{exit !(\$cpu2 - \$cpu1 < 2)}\"; then
+        virsh domblklist \"\$vm\" --details 2>/dev/null | awk '/cdrom/ {print \$1}' | while read -r d; do
+          virsh change-media \"\$vm\" \"\$d\" --eject --config 2>/dev/null || true
+        done
+      fi
+    done
+  " >> /var/log/nested-virt-provision.log 2>&1 &
+  log "cdrom eject watcher started guest_ip=${guest_ip}"
 }
 
 create_disk() {
@@ -109,34 +169,42 @@ create_disk() {
 }
 
 start_install() {
-  if virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
+  if [[ "${FORCE_REINSTALL:-0}" == "1" ]]; then
+    destroy_vm
+    create_disk
+  elif virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
     log "vm ${VM_NAME} already defined state=$(virsh domstate "$VM_NAME" 2>/dev/null || echo unknown)"
     return 0
   fi
-  local site_id site_oct
+  local site_id guest_ip gateway guest_mac
   site_id=$(imds_tag SiteId); site_id="${site_id:-0}"
-  site_oct="$site_id"
-  build_unattend_iso "$site_id"
+  guest_ip="10.${site_id}.1.10"
+  gateway="10.${site_id}.1.1"
+  guest_mac="$(guest_mac_for_site "$site_id")"
+  build_unattend_floppy "$site_id"
+  setup_lab_dhcp "$site_id" "$guest_ip" "$gateway" "$guest_mac"
 
-  log "virt-install begin vm=${VM_NAME} bridge=br-default site=${site_id}"
+  log "virt-install begin vm=${VM_NAME} bridge=br-default site=${site_id} mac=${guest_mac} boot=bios"
   virt-install \
     --name "$VM_NAME" \
     --memory 32768 \
     --vcpus 8 \
     --cpu host-passthrough \
-    --disk path="$DISK",bus=virtio,format=qcow2 \
+    --machine ubuntu-q35 \
+    --disk path="$DISK",bus=sata,format=qcow2 \
     --disk path="$WIN_ISO",device=cdrom \
     --disk path="$VIRTIO_ISO",device=cdrom \
-    --disk path="$UNATTEND_ISO",device=cdrom \
-    --network bridge="br-default",model=virtio \
+    --disk path="$UNATTEND_FLOPPY",device=floppy \
+    --network bridge="br-default",model=e1000,mac="${guest_mac}" \
     --os-variant win2k22 \
     --graphics vnc,listen=0.0.0.0,port=5900 \
     --noautoconsole \
-    --boot uefi,hd,cdrom \
+    --boot hd,cdrom,menu=off \
     --channel unix,target_type=virtio,name=org.qemu.guest_agent_0 \
     --memballoon virtio \
     --rng /dev/urandom
-  log "virt-install submitted vm=${VM_NAME} vnc=0.0.0.0:5900 guest_ip=10.${site_oct}.1.10"
+  start_cdrom_eject_watcher "$site_id"
+  log "virt-install submitted vm=${VM_NAME} vnc=0.0.0.0:5900 guest_ip=${guest_ip}"
 }
 
 main() {
@@ -177,7 +245,13 @@ main() {
       log "complete vm=${VM_NAME} admin_password_file=${STATE_DIR}/win-guest-admin-password"
       ;;
     complete)
-      log "already complete vm=${VM_NAME} state=$(virsh domstate "$VM_NAME" 2>/dev/null || echo n/a)"
+      if [[ "${FORCE_REINSTALL:-0}" == "1" ]]; then
+        start_install
+        set_phase complete
+        log "reinstall complete vm=${VM_NAME}"
+      else
+        log "already complete vm=${VM_NAME} state=$(virsh domstate "$VM_NAME" 2>/dev/null || echo n/a)"
+      fi
       ;;
     *)
       log "unknown phase=${phase}"; exit 1 ;;

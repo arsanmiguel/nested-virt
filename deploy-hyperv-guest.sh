@@ -28,11 +28,14 @@ run_on_instance() {
   if [[ -n "$WINDOWS_ISO_S3_URI" ]]; then
     env_prefix="WINDOWS_ISO_S3_URI=${WINDOWS_ISO_S3_URI}"
   fi
+  if [[ "${FORCE_REINSTALL:-0}" == "1" ]]; then
+    env_prefix="${env_prefix} FORCE_REINSTALL=1"
+  fi
   local cmd_id
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$iid" \
     --document-name AWS-RunShellScript \
     --timeout-seconds 7200 \
-    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/provision-windows-guest.sh /tmp/provision-windows-guest.sh && aws s3 cp ${S3_PREFIX}/autounattend.xml /tmp/autounattend.xml && aws s3 cp ${S3_PREFIX}/enable-hyperv.ps1 /tmp/enable-hyperv.ps1 && chmod +x /tmp/provision-windows-guest.sh && nohup env UNATTEND_TEMPLATE=/tmp/autounattend.xml ENABLE_HYPERV_PS1=/tmp/enable-hyperv.ps1 ${env_prefix} /tmp/provision-windows-guest.sh > /var/log/nested-virt-provision.log 2>&1 & echo started pid=\\$!\"]" \
+    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/provision-windows-guest.sh /tmp/provision-windows-guest.sh && aws s3 cp ${S3_PREFIX}/autounattend.xml /tmp/autounattend.xml && aws s3 cp ${S3_PREFIX}/enable-hyperv.ps1 /tmp/enable-hyperv.ps1 && chmod +x /tmp/provision-windows-guest.sh && nohup env UNATTEND_TEMPLATE=/tmp/autounattend.xml ENABLE_HYPERV_PS1=/tmp/enable-hyperv.ps1 ${env_prefix} /tmp/provision-windows-guest.sh > /var/log/nested-virt-provision.log 2>&1 & echo started\"]" \
     --query Command.CommandId --output text)
   sleep 15
   aws ssm get-command-invocation --region "$AWS_REGION" \

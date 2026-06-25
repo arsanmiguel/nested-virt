@@ -178,8 +178,15 @@ configure_extra_nics() {
   for mac in "${macs[@]}"; do
     devno=$(curl -sf -H "X-aws-ec2-metadata-token: ${token}" \
       "http://169.254.169.254/latest/meta-data/network/interfaces/macs/${mac}/device-number")
-    cur=$(ip -o link show | awk -v m="${mac//:/}" 'BEGIN{mac=tolower(m)} {
-      gsub(":","",$3); if (tolower($3)==mac) {split($2,a,":"); print a[2]}}')
+    cur=$(ip -o link show | awk -v m="${mac}" 'BEGIN{
+      gsub(":","",m); m=tolower(m)
+    } {
+      split($2, a, ":"); iface=a[2]
+      for (i = 3; i <= NF; i++) {
+        gsub(":","",$i)
+        if (tolower($i) == m) { print iface; exit }
+      }
+    }')
     [[ -z "$cur" ]] && continue
     name="kvm-host-nic${devno}"
     if [[ "$cur" != "$name" ]]; then
