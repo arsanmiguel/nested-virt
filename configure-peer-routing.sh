@@ -59,7 +59,7 @@ apply_routes() {
   local cmd_id
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$iid" \
     --document-name AWS-RunShellScript \
-    --parameters "commands=[\"aws s3 cp s3://nested-virt-bootstrap-${AWS_ACCOUNT_ID}/nested-virt/fix-transport-routing.sh /tmp/fix-transport-routing.sh && chmod +x /tmp/fix-transport-routing.sh && /tmp/fix-transport-routing.sh && aws s3 cp s3://nested-virt-bootstrap-${AWS_ACCOUNT_ID}/nested-virt/apply-peer-routes.sh /tmp/apply-peer-routes.sh && chmod +x /tmp/apply-peer-routes.sh && /tmp/apply-peer-routes.sh\"]" \
+    --parameters "commands=[\"aws s3 cp s3://nested-virt-bootstrap-${AWS_ACCOUNT_ID}/nested-virt/fix-transport-routing.sh /tmp/fix-transport-routing.sh && chmod +x /tmp/fix-transport-routing.sh && /tmp/fix-transport-routing.sh && aws s3 cp s3://nested-virt-bootstrap-${AWS_ACCOUNT_ID}/nested-virt/setup-gre-tunnel.sh /tmp/setup-gre-tunnel.sh && aws s3 cp s3://nested-virt-bootstrap-${AWS_ACCOUNT_ID}/nested-virt/apply-peer-routes.sh /tmp/apply-peer-routes.sh && chmod +x /tmp/setup-gre-tunnel.sh /tmp/apply-peer-routes.sh && /tmp/apply-peer-routes.sh\"]" \
     --query Command.CommandId --output text)
   sleep 12
   aws ssm get-command-invocation --region "$AWS_REGION" \

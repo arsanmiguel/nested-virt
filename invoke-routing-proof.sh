@@ -82,8 +82,15 @@ if [[ "$LAYER" == "all" || "$LAYER" == "l0" ]]; then
 fi
 
 if [[ "$LAYER" == "all" || "$LAYER" == "l1" ]]; then
-  echo "L1 (cross-site lab bridge) — VPC fabric does not carry 10.x; use --layer l1-local for host checks."
-  echo "Cross-site lab routing needs GRE/IPIP between transport ENIs (future)."
+  ssm_ping "$SITE_0_INSTANCE_ID" "10.1.1.1" "L1-cross-site-gateway" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "10.0.1.1" "L1-cross-site-gateway-reverse" || FAIL=1
+fi
+
+if [[ "$LAYER" == "l1-cross" ]]; then
+  ssm_ping "$SITE_0_INSTANCE_ID" "10.1.1.1" "L1-cross-site-gateway" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "10.0.1.1" "L1-cross-site-gateway-reverse" || FAIL=1
+  ssm_ping "$SITE_0_INSTANCE_ID" "10.1.1.10" "L1-cross-site-guest" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "10.0.1.10" "L1-cross-site-guest-reverse" || FAIL=1
 fi
 
 if [[ "$LAYER" == "all" || "$LAYER" == "l1-local" ]]; then

@@ -353,9 +353,16 @@ configure_peer_routes() {
     ip route replace "${peer_ip}/32" via "$gw" dev "$dev"
     log "PHASE=PEER host route ${peer_ip}/32 via ${gw} dev ${dev}"
   fi
-  if ! ip route show "$peer_lab" 2>/dev/null | grep -q "$peer_ip"; then
-    ip route replace "$peer_lab" via "$peer_ip" dev "$dev" onlink
-    log "PHASE=PEER route added ${peer_lab} via ${peer_ip} dev ${dev} onlink"
+  region=$(imds_get placement/region 2>/dev/null || curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
+    http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || true)
+  account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
+    http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
+    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
+  if [[ -n "$region" && -n "$account" ]]; then
+    aws s3 cp "s3://nested-virt-bootstrap-${account}/nested-virt/setup-gre-tunnel.sh" \
+      /tmp/setup-gre-tunnel.sh --region "$region" 2>/dev/null && \
+      chmod +x /tmp/setup-gre-tunnel.sh && /tmp/setup-gre-tunnel.sh || \
+      log 'PHASE=PEER gre setup warn s3 fetch failed'
   fi
   site_id=$(imds_tag SiteId 2>/dev/null || echo 0)
   oct="$(site_octet "${site_id:-0}")"

@@ -2,6 +2,7 @@
 # Apply peer routes from instance tags (safe to re-run after configure-peer-routing.sh).
 set -euo pipefail
 TIMING_LOG=/var/log/amazon/launch-timing.log
+ROOT="$(cd "$(dirname "$0")" && pwd)"
 log() { echo "$(date -Iseconds) $*" | tee -a "$TIMING_LOG"; }
 
 imds_token() {
@@ -44,14 +45,20 @@ for table_id in 101 102; do
     fi
     if [[ -n "$gw" && -n "$peer" ]]; then
       ip route replace "${peer}/32" via "$gw" dev "$dev" table "$table_id" onlink 2>/dev/null || true
-      ip route replace "${peer_lab}" via "$peer" dev "$dev" onlink table "$table_id" 2>/dev/null || true
     fi
     break
   fi
 done
-ip route replace "${peer_ip}/32" via "${gw:-$(ip route show table 102 | awk '/default via/ {print $3; exit}')}" dev "$dev" onlink 2>/dev/null || true
-ip route replace "$peer_lab" via "$peer_ip" dev "$dev" onlink 2>/dev/null || true
-log "PHASE=PEER apply route ${peer_lab} via ${peer_ip}"
+
+if [[ -x "${ROOT}/setup-gre-tunnel.sh" ]]; then
+  "${ROOT}/setup-gre-tunnel.sh"
+elif [[ -x /tmp/setup-gre-tunnel.sh ]]; then
+  /tmp/setup-gre-tunnel.sh
+else
+  log "PHASE=PEER apply warn setup-gre-tunnel.sh missing"
+fi
+
+log "PHASE=PEER apply route ${peer_lab} via gre tunnel"
 
 local_lab="10.${site_id}.0.0/16"
 iptables -C FORWARD -s "$local_lab" -d "$peer_lab" -j ACCEPT 2>/dev/null || \

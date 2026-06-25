@@ -44,6 +44,7 @@ fi
 aws s3 cp "${ROOT}/bootstrap.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh" --region "${AWS_REGION}"
 aws s3 cp "${ROOT}/scripts/apply-peer-routes.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/apply-peer-routes.sh" --region "${AWS_REGION}"
 aws s3 cp "${ROOT}/scripts/fix-transport-routing.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/fix-transport-routing.sh" --region "${AWS_REGION}"
+aws s3 cp "${ROOT}/scripts/setup-gre-tunnel.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/setup-gre-tunnel.sh" --region "${AWS_REGION}"
 echo "Uploaded s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh"
 
 python3 "${SCRIPT_DIR}/package-template.py"
