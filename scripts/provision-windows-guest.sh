@@ -123,6 +123,10 @@ setup_lab_dhcp() {
   local conf=/etc/nested-virt-dnsmasq.conf
   export DEBIAN_FRONTEND=noninteractive
   apt-get install -y dnsmasq
+  local guest_ip="10.${site_id}.1.10" gateway="10.${site_id}.1.1"
+  local inner_mac inner_ip
+  inner_mac="$(printf '52:54:00:20:%02x:20' "$((10#${site_id}))")"
+  inner_ip="10.${site_id}.1.20"
   cat > "$conf" <<EOF
 port=0
 interface=br-default
@@ -130,6 +134,9 @@ bind-interfaces
 dhcp-host=${mac},${guest_ip},set:nested-guest,infinite
 dhcp-option=tag:nested-guest,3,${gateway}
 dhcp-option=tag:nested-guest,6,${gateway}
+dhcp-host=${inner_mac},${inner_ip},set:inner,infinite
+dhcp-option=tag:inner,3,${gateway}
+dhcp-option=tag:inner,6,${gateway}
 EOF
   pkill -f "${conf}" 2>/dev/null || true
   nohup dnsmasq -C "$conf" --pid-file=/run/nested-virt-dnsmasq.pid \
@@ -184,12 +191,14 @@ start_install() {
   build_unattend_floppy "$site_id"
   setup_lab_dhcp "$site_id" "$guest_ip" "$gateway" "$guest_mac"
 
-  log "virt-install begin vm=${VM_NAME} bridge=br-default site=${site_id} mac=${guest_mac} boot=bios"
+  log "virt-install begin vm=${VM_NAME} bridge=br-default site=${site_id} mac=${guest_mac} boot=bios cpu=${NESTED_CPU_MODEL:-Cascadelake-Server-noTSX}"
   virt-install \
     --name "$VM_NAME" \
     --memory 32768 \
     --vcpus 8 \
-    --cpu host-passthrough \
+    --cpu mode=custom,model=${NESTED_CPU_MODEL:-Cascadelake-Server-noTSX},match=exact,check=partial,require=vmx,disable=hypervisor,require=pdpe1gb \
+    --features kvm_hidden=on \
+    --clock offset=localtime \
     --machine ubuntu-q35 \
     --disk path="$DISK",bus=sata,format=qcow2 \
     --disk path="$WIN_ISO",device=cdrom \

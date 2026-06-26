@@ -55,23 +55,23 @@ systeminfo | findstr /i hyper
 
 ## 4. Inner VM (nested layer 2)
 
-Create an internal vSwitch in Hyper-V bound to the guest's single NIC, or use Default Switch for a quick ping test.
+**Automated path (recommended):** see [BUILD.md](BUILD.md) phase 4.
 
-Inner VM should receive an IP on Hyper-V's NAT range first; for cross-site proof, attach inner workload to a lab network that routes via the Linux bridge (advanced — L2 demo).
+```bash
+./deploy-inner-ubuntu.sh              # both sites
+# or on metal: scripts/deploy-real-l2.sh {site}
+```
+
+Creates external vSwitch **`NestedVirt-Lab`**, Ubuntu 24.04 Gen2 VM at `10.{site}.1.20` on Hyper-V (not metal KVM).
 
 ## 5. Cross-site proof (L2)
 
-Once both sites have Windows+Hyper-V guests on `10.0.1.x` and `10.1.1.x`:
-
-From site-0 guest: `ping 10.1.1.1` (peer Linux bridge) then inner VM on site-1 when routed.
-
-Run from your laptop:
-
 ```bash
-./invoke-routing-proof.sh --layer l1
-# after inner VMs exist:
-./invoke-routing-proof.sh --layer l2   # extend script with guest IPs
+./invoke-routing-proof.sh --layer l2
+./invoke-routing-proof.sh --layer all
 ```
+
+Topology: [network-diagram.md](network-diagram.md). Triage: [nested-virt-hiccups.md](nested-virt-hiccups.md).
 
 ## Troubleshooting
 

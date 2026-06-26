@@ -108,9 +108,11 @@ if [[ "$LAYER" == "l1-guest-winrm" ]]; then
   ssm_tcp "$SITE_1_INSTANCE_ID" "10.1.1.10" "5985" "L1-guest-winrm" || FAIL=1
 fi
 
-if [[ "$LAYER" == "l2" ]]; then
-  echo "L2 (nested Hyper-V inner VM) — not automated yet."
-  echo "Run --layer l1-guest after Windows guests are up."
+if [[ "$LAYER" == "all" || "$LAYER" == "l2" ]]; then
+  ssm_ping "$SITE_0_INSTANCE_ID" "10.0.1.20" "L2-inner-local-site0" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "10.1.1.20" "L2-inner-local-site1" || FAIL=1
+  ssm_ping "$SITE_0_INSTANCE_ID" "10.1.1.20" "L2-inner-cross" || FAIL=1
+  ssm_ping "$SITE_1_INSTANCE_ID" "10.0.1.20" "L2-inner-cross-reverse" || FAIL=1
 fi
 
 if (( FAIL )); then

@@ -73,8 +73,13 @@
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add">
           <Order>3</Order>
-          <Description>Enable Hyper-V</Description>
-          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "Install-WindowsFeature Hyper-V -IncludeManagementTools; if (-not (Get-WindowsFeature Hyper-V).Installed) { exit 1 }"</CommandLine>
+          <Description>Startup task: restore lab IP after Hyper-V reboots</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "$script='C:\ProgramData\nested-virt\restore-lab-ip.ps1'; New-Item -ItemType Directory -Force -Path 'C:\ProgramData\nested-virt' | Out-Null; @'\n$ip=''GUEST_IP''; $gw=''BR_GATEWAY''\n$nic=Get-NetAdapter|?{$_.Status -eq ''Up'' -and $_.Name -notmatch ''vEthernet''}|select -First 1\nif($nic -and -not (Get-NetIPAddress -InterfaceIndex $nic.ifIndex -AddressFamily IPv4|?{$_.IPAddress -eq $ip})){New-NetIPAddress -InterfaceIndex $nic.ifIndex -IPAddress $ip -PrefixLength 24 -DefaultGateway $gw -ErrorAction SilentlyContinue}\n'@ | Set-Content $script; schtasks /Create /TN NestedVirtRestoreLabIp /SC ONSTART /RU SYSTEM /RL HIGHEST /TR \"powershell.exe -ExecutionPolicy Bypass -File $script\" /F"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>4</Order>
+          <Description>Defer Hyper-V to enable-hyperv-nested-host.ps1 after KVM nested XML fix</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "New-Item -ItemType Directory -Force -Path 'C:\ProgramData\nested-virt' | Out-Null; 'deferred' | Set-Content 'C:\ProgramData\nested-virt\hyperv-deferred.txt'"</CommandLine>
         </SynchronousCommand>
       </FirstLogonCommands>
       <UserAccounts>
