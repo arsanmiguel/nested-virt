@@ -10,6 +10,8 @@
 
 # Why this exists
 
+*The long version: [why.md](why.md).*
+
 Every architecture conference (yes, even this one) tells you to modernize.
 
 Most of the time, that's exactly the right answer.
