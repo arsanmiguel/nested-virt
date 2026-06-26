@@ -167,7 +167,7 @@
   <text x="800" y="367" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC | SSM / SSH / NAT (nic0)</text>
 
   <!-- L1: br-default to GRE -->
-  <line x1="658" y1="503" x2="682" y2="503" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
+  <line x1="628" y1="503" x2="682" y2="503" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
   <line x1="918" y1="503" x2="972" y2="503" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
   <!-- L2: Ubuntu inner guests to L2 box (lines in gap; arrow tips on box borders) -->
