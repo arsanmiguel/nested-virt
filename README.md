@@ -42,7 +42,8 @@ Then Tony retires.
 
 Tony's documentation fits on half a napkin; his retirement plan is to come back as a consultant.
 
-Tony offers you one piece of advice as he walks out: "Just rewrite it. :) "
+Tony offers you one piece of advice as he walks out: "Just rewrite it."
+
 
 Congratulations, you're Tony now.
 
@@ -52,7 +53,7 @@ This repository exists because every organization eventually has to answer the s
 >
 > **How do we buy ourselves enough time to do this *****right*****?**
 
-It represents thousands of hours spent designing, migrating, validating, and troubleshooting enterprise virtualization platforms over the last 26 years.
+This repository represents thousands of hours designing, migrating, validating, breaking, fixing, and ultimately understanding enterprise virtualization platforms over the last 26 years.
 
 None of it was hypothetical.
 
@@ -202,7 +203,7 @@ One tiny mistake later...
 * MTU mismatches create packet loss that looks like everything except MTU.
 * Cloud-init helpfully rewrites your network configuration.
 * False-positive health checks send you chasing ghosts.
-* Someone's IaC or change management software eradicates your infrastructure
+* Someone's "known good" automation faithfully destroys your infrastructure.
 * Nested virtualization exposes edge cases I hadn't seen in 26 years—and Reddit, Stack Overflow, or your favorite AI assistant probably won't save you.
 
 I've spent thousands of hours proving assumptions wrong, validating configurations like this, and hunting the real fault instead of the obvious one.
