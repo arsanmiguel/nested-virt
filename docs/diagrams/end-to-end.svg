@@ -8,6 +8,9 @@
     <marker id="arrow-gray-border-down" markerWidth="8" markerHeight="8" refX="4" refY="0" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M0,0 L4,8 L8,0 Z" fill="#475569"/>
     </marker>
+    <marker id="arrow-gray-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,0 L4,8 Z" fill="#475569"/>
+    </marker>
     <marker id="arrow-red-border-left" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M8,0 L0,4 L8,8 Z" fill="#dc2626"/>
     </marker>
@@ -116,9 +119,9 @@
     <text x="310" y="592" text-anchor="middle" font-size="19" font-weight="600">nic1 (transport ENI /28)</text>
     <text x="310" y="616" text-anchor="middle" font-size="16" fill="#64748b">172.31.48.10 | GRE outer header src</text>
 
-    <line x1="310" y1="290" x2="310" y2="298" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
-    <line x1="310" y1="386" x2="310" y2="394" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
-    <line x1="310" y1="462" x2="310" y2="470" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
+    <line x1="310" y1="282" x2="310" y2="300" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
+    <line x1="310" y1="378" x2="310" y2="396" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
+    <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
   </g>
 
   <!-- Site 1 -->
@@ -154,9 +157,9 @@
     <text x="310" y="592" text-anchor="middle" font-size="19" font-weight="600">nic1 (transport ENI /28)</text>
     <text x="310" y="616" text-anchor="middle" font-size="16" fill="#64748b">172.31.48.26 | GRE outer header src</text>
 
-    <line x1="310" y1="290" x2="310" y2="298" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
-    <line x1="310" y1="386" x2="310" y2="394" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
-    <line x1="310" y1="462" x2="310" y2="470" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
+    <line x1="310" y1="282" x2="310" y2="300" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
+    <line x1="310" y1="378" x2="310" y2="396" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
+    <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
   </g>
 
   <!-- VPC mgmt plane: nic0 across both sites -->
