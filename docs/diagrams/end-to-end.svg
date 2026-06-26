@@ -16,6 +16,12 @@
     <marker id="arrow-red-left" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
       <path d="M12,0 L0,6 L12,12 Z" fill="#dc2626"/>
     </marker>
+    <marker id="arrow-red-border-left" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M8,0 L0,4 L8,8 Z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrow-red-border-right" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#dc2626"/>
+    </marker>
     <marker id="arrow-blue-right" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto">
       <path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/>
     </marker>
@@ -164,11 +170,11 @@
 
   <!-- L1: br-default to GRE -->
   <line x1="650" y1="503" x2="690" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
-  <line x1="910" y1="503" x2="1010" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
+  <line x1="920" y1="503" x2="1000" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
-  <!-- L2: Ubuntu inner guests to L2 box -->
-  <line x1="500" y1="759" x2="690" y2="759" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
-  <line x1="910" y1="759" x2="1100" y2="759" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
+  <!-- L2: Ubuntu inner guests to L2 box (lines in gap; arrow tips on box borders) -->
+  <line x1="510" y1="759" x2="680" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
+  <line x1="920" y1="759" x2="1090" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
   <!-- L0: VPC fabric + transport ENIs (purple rides on blue VPC underlay) -->
   <line x1="680" y1="872" x2="920" y2="872" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-left)" marker-end="url(#arrow-blue-right)"/>
