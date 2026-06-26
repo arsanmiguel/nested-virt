@@ -1,0 +1,4 @@
+# Intentional lab networking — metal hosts need full internet reach for IGW NAT,
+# bootstrap pulls, and cross-proof traffic. Do not remove without breaking the lab.
+AVD-AWS-0104
+AVD-AWS-0107

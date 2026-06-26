@@ -99,9 +99,13 @@ Resources:
         - IpProtocol: -1
           CidrIp: 10.0.0.0/8
           Description: Lab supernets (site routing)
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Lab inbound (nested-virt proof and guest traffic)
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
+          Description: Lab outbound (IGW NAT, bootstrap, nested guest pulls)
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-sg'
@@ -115,12 +119,14 @@ Resources:
       SecurityGroupIngress:
         - IpProtocol: -1
           CidrIp: !Ref VpcCidr
+          Description: VPC fabric east-west for transport ENI (L0 GRE)
         - IpProtocol: -1
           CidrIp: 10.0.0.0/8
-          Description: Lab supernets via transport (GRE future)
+          Description: Lab supernets via transport (GRE overlay)
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: !Ref VpcCidr
+          Description: Transport ENI egress within VPC fabric
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-transport-sg'
@@ -175,6 +181,7 @@ Resources:
     Properties:
       LogGroupName: !Sub '/nested-virt/bootstrap-timing/${InstanceName}'
       RetentionInDays: 90
+      KmsKeyId: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/logs'
 
   CloudWatchAgentConfigParameter:
     Type: AWS::SSM::Parameter
@@ -210,12 +217,14 @@ Resources:
           Ebs:
             VolumeSize: 200
             VolumeType: gp3
+            Encrypted: true
             DeleteOnTermination: true
         - DeviceName: /dev/sdb
           Ebs:
             VolumeSize: 2048
             VolumeType: gp3
             Iops: 16000
+            Encrypted: true
             DeleteOnTermination: true
       UserData: '{{USERDATA_B64}}'
       Tags:

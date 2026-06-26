@@ -207,6 +207,7 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 | `provision-ubuntu-inner-vm.ps1` | Windows | Hyper-V inner VM |
 | `fix-inner-hyperv-network.sh` | Metal | Force redeploy inner (wrapper) |
 | `scripts/debug/diag-hyperv-inner.sh` | Metal | L2 diagnose (`quick`/`full`) or `cleanup` before redeploy |
+| `scripts/security-scan.sh` | Laptop | Trivy + Checkov + Gitleaks (Docker); expects Colima |
 | `setup-gre-tunnel.sh` | Metal | GRE peer tunnel |
 | `invoke-routing-proof.sh` | Laptop | Layered routing proofs |
 | `experiment-nested-hyperv-cpu.sh` | Metal | CPU model sweep for vmms |
