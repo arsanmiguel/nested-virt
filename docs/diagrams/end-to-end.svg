@@ -171,8 +171,6 @@
   <text x="800" y="860" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC routes transport /32</text>
 
   <line x1="680" y1="900" x2="920" y2="900" stroke="#7c3aed" stroke-width="3" marker-start="url(#arrow-purple-left)" marker-end="url(#arrow-purple-right)"/>
-  <line x1="370" y1="874" x2="370" y2="900" stroke="#7c3aed" stroke-width="3"/>
-  <line x1="1230" y1="874" x2="1230" y2="900" stroke="#7c3aed" stroke-width="3"/>
   <text x="800" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#4338ca">L0 - transport ENIs reachable across VPC (172.31.48.10 &lt;-&gt; 172.31.48.26)</text>
 
   <text x="800" y="962" text-anchor="middle" font-size="16" fill="#64748b">Each column is one metal host. Same libvirt/Hyper-V names are per-host, not shared.</text>
