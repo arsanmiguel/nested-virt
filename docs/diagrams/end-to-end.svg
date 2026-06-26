@@ -48,7 +48,7 @@
   <rect x="45" y="802" width="1510" height="118" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <line x1="45" y1="416" x2="45" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <line x1="1555" y1="416" x2="1555" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
-  <rect x="682" y="322" width="236" height="58" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
+  <rect x="682" y="320" width="236" height="74" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <text x="800" y="342" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC fabric</text>
   <text x="800" y="358" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
   <text x="800" y="374" text-anchor="middle" font-size="12" font-weight="600" fill="#1d4ed8">primary ENIs</text>
@@ -172,7 +172,7 @@
   <line x1="918" y1="759" x2="1092" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
   <!-- L0: VPC fabric + transport ENIs (purple rides on blue VPC underlay) -->
-  <line x1="688" y1="872" x2="912" y2="872" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
+  <line x1="688" y1="886" x2="912" y2="886" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
   <rect x="682" y="824" width="236" height="44" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <text x="800" y="844" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
   <text x="800" y="860" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC routes transport /32</text>
