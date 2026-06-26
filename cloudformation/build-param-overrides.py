@@ -29,6 +29,8 @@ def main() -> int:
         params["PeerTransportEniIp"] = os.environ["PEER_TRANSPORT_ENI_IP"]
     if os.environ.get("PEER_LAB_SUPERNET"):
         params["PeerLabSupernet"] = os.environ["PEER_LAB_SUPERNET"]
+    if os.environ.get("BOOTSTRAP_BUCKET"):
+        params["BootstrapBucket"] = os.environ["BOOTSTRAP_BUCKET"]
     overrides = dict(params)
     with open(params_path, "w") as f:
         json.dump(

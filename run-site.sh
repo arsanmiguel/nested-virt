@@ -4,6 +4,10 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 # Preserve caller env before config.env (must not export SITE_ID there)
 _CALLER_SITE_ID="${SITE_ID:-}"
 _CALLER_AZ="${AVAILABILITY_ZONE:-}"
+if [[ ! -f "${ROOT}/config.env" ]]; then
+  echo "Missing ${ROOT}/config.env — copy and edit: cp config.env.example config.env"
+  exit 1
+fi
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 

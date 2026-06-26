@@ -1,4 +1,5 @@
 config.local.env
+config.env
 .last-stack*.env
 sites.env
 .domain-join-password.env

@@ -1,8 +1,8 @@
 [
   {"ParameterKey": "LaunchInstance", "ParameterValue": "true"},
-  {"ParameterKey": "KeyName", "ParameterValue": "arskeypair"},
-  {"ParameterKey": "VpcId", "ParameterValue": "vpc-1c42b87b"},
-  {"ParameterKey": "SubnetId", "ParameterValue": "subnet-736f0159"},
+  {"ParameterKey": "KeyName", "ParameterValue": "YOUR_KEY_PAIR"},
+  {"ParameterKey": "VpcId", "ParameterValue": "vpc-CHANGE_ME"},
+  {"ParameterKey": "SubnetId", "ParameterValue": "subnet-CHANGE_ME"},
   {"ParameterKey": "VpcCidr", "ParameterValue": "172.31.0.0/16"},
   {"ParameterKey": "AdminCidr", "ParameterValue": "172.31.0.0/16"},
   {"ParameterKey": "InstanceName", "ParameterValue": "nested-virt-s0-01"},
@@ -10,7 +10,7 @@
   {"ParameterKey": "SiteId", "ParameterValue": "0"},
   {"ParameterKey": "PeerTransportEniIp", "ParameterValue": ""},
   {"ParameterKey": "PeerLabSupernet", "ParameterValue": ""},
-  {"ParameterKey": "RootNotifyEmail", "ParameterValue": "adrianr.sanmiguel@gmail.com"},
+  {"ParameterKey": "RootNotifyEmail", "ParameterValue": "you@example.com"},
   {"ParameterKey": "AssociatePublicIp", "ParameterValue": "true"},
   {"ParameterKey": "AlarmPeriodSeconds", "ParameterValue": "120"}
 ]

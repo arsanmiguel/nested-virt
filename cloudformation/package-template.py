@@ -17,10 +17,14 @@ def main() -> int:
     out = HERE / "packaged-template.yaml"
     env_file = HERE / ".bootstrap-bucket.env"
 
-    bucket = os.environ.get(
-        "BOOTSTRAP_BUCKET",
-        f"nested-virt-bootstrap-{os.environ.get('AWS_ACCOUNT_ID', '442056872435')}",
-    )
+    bucket = os.environ.get("BOOTSTRAP_BUCKET")
+    if not bucket:
+        account = os.environ.get("AWS_ACCOUNT_ID")
+        if account:
+            bucket = f"nested-virt-bootstrap-{account}"
+        else:
+            print("ERROR: set BOOTSTRAP_BUCKET or AWS_ACCOUNT_ID", file=sys.stderr)
+            return 1
     if env_file.is_file():
         for line in env_file.read_text().splitlines():
             if line.startswith("BOOTSTRAP_BUCKET="):

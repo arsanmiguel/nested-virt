@@ -20,16 +20,18 @@ vpc = os.environ["VPC_ID"]
 az = os.environ["AVAILABILITY_ZONE"]
 tag_name = f"{os.environ['TAG_PREFIX']}-{az}"
 
-az_cidrs = {
-    "us-east-1a": "172.31.96.0/28",
-    "us-east-1b": "172.31.96.16/28",
-    "us-east-1c": "172.31.96.32/28",
-    "us-east-1d": "172.31.96.48/28",
-    "us-east-1e": "172.31.96.64/28",
-    "us-east-1f": "172.31.96.80/28",
-}
+cidrs_json = os.environ.get("KVM_NIC_SUBNET_CIDRS", "").strip()
+if cidrs_json:
+    az_cidrs = json.loads(cidrs_json)
+else:
+    az_cidrs = {}
+
 if az not in az_cidrs:
-    print(f"ERROR: no KVM NIC CIDR mapping for AZ {az}", file=sys.stderr)
+    print(
+        f"ERROR: no KVM NIC CIDR for {az}. Set KVM_NIC_SUBNET_CIDRS in config.env "
+        f'(JSON map) or pre-create subnet tagged Name={tag_name}.',
+        file=sys.stderr,
+    )
     sys.exit(1)
 want_cidr = az_cidrs[az]
 

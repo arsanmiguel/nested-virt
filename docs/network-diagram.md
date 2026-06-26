@@ -19,7 +19,7 @@ Color-coded map of every network in the **nested-virt** two-AZ lab. Use this wit
 | Address | Device | Notes |
 |---------|--------|-------|
 | `172.31.x.x` | `kvm-host-nic0` | Public or VPC-routable management |
-| `172.31.96.x` | `kvm-host-nic1` | Transport ENI (example: `172.31.96.13`) |
+| `172.31.x.x` | `kvm-host-nic1` | Transport ENI (your VPC /28) |
 | `10.0.1.1` | `br-default` on metal | Lab gateway, dnsmasq, HTTP serve for inner deploy |
 | `10.0.1.10` | Windows KVM guest | Hyper-V host; MAC `52:54:00:10:00:10` |
 | `10.0.1.20` | Ubuntu Hyper-V inner | MAC `52:54:00:20:00:20` |
@@ -49,7 +49,7 @@ flowchart TB
     subgraph VPC0["🔵 VPC fabric"]
       IGW0[Internet Gateway]
       ENI0_M["⚪ kvm-host-nic0<br/>172.31.x.x<br/>SSH / SSM / NAT"]
-      ENI0_T["🟣 kvm-host-nic1<br/>172.31.96.13/28<br/>transport ENI"]
+      ENI0_T["🟣 kvm-host-nic1<br/>172.31.x.x/28<br/>transport ENI"]
     end
 
     subgraph METAL0["c7i.metal-48xl — AL2023 host"]
@@ -80,7 +80,7 @@ flowchart TB
 
     subgraph VPC1["🔵 VPC fabric"]
       ENI1_M["⚪ kvm-host-nic0"]
-      ENI1_T["🟣 kvm-host-nic1<br/>172.31.96.x/28"]
+      ENI1_T["🟣 kvm-host-nic1<br/>172.31.x.x/28"]
     end
 
     subgraph METAL1["c7i.metal-48xl — AL2023 host"]
@@ -226,7 +226,7 @@ Only `br-default` is required for the nested-virt proof stack today.
 
 1. **Source** `10.0.1.20` (Hyper-V Ubuntu) → external vSwitch → Windows `vEthernet` → KVM e1000 → **`br-default`**
 2. **Default route** on inner: via `10.0.1.1` (metal gateway)
-3. **Metal host** matches `10.1.0.0/16` → **`gre-peer`** (src `10.0.1.1`, outer header `172.31.96.x ↔ 172.31.96.y`)
+3. **Metal host** matches `10.1.0.0/16` → **`gre-peer`** (src `10.0.1.1`, outer header peer transport IPs)
 4. **VPC** delivers GRE to peer transport ENI (L0)
 5. **Site 1 metal** decaps GRE → forwards into **`br-default`** / `10.1.1.0/24`
 6. **Hyper-V path** on site 1 → inner `10.1.1.20`

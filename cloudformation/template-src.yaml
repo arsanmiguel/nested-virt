@@ -14,15 +14,12 @@ Parameters:
 
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Default: vpc-1c42b87b
 
   SubnetId:
     Type: AWS::EC2::Subnet::Id
-    Default: subnet-736f0159
 
   ExtraHostNicSubnetId:
     Type: AWS::EC2::Subnet::Id
-    Default: subnet-736f0159
     Description: Private /28 per AZ for kvm-host-nic1/2 (transport layer).
 
   VpcCidr:
@@ -58,7 +55,7 @@ Parameters:
 
   RootNotifyEmail:
     Type: String
-    Default: adrianr.sanmiguel@gmail.com
+    Default: ''
 
   AssociatePublicIp:
     Type: String
@@ -76,7 +73,7 @@ Parameters:
 
   BootstrapBucket:
     Type: String
-    Default: nested-virt-bootstrap-442056872435
+    Default: ''
 
 Conditions:
   LaunchInstance: !Equals [!Ref LaunchInstance, 'true']
