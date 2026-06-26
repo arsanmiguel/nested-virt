@@ -19,7 +19,7 @@ c7i.metal (Amazon Linux 2023)
 
 Cross-AZ routing uses **dedicated transport ENIs** (`kvm-host-nic1`) plus **GRE tunnels** because raw `10.x` lab space does not ride the VPC fabric. Each layer has an explicit proof command (`invoke-routing-proof.sh`).
 
-**Status (June 2026):** L0, L1, and L2 proofs pass both directions. Site 0 inner Ubuntu runs on real Hyper-V (not the metal-KVM shortcut).
+**Status (June 2026):** L0, L1, and L2 proofs pass both directions on both sites.
 
 ---
 
@@ -119,7 +119,7 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
     - Fix KVM XML (if needed)
     - Wait for WinRM
     - Enable Hyper-V / confirm vmms
-    - **Destroy metal `ubuntu-inner`** if present (wrong L2 shortcut)
+    - Remove stale **`ubuntu-inner`** from libvirt if present (must not coexist with Hyper-V inner)
     - **`deploy-inner-ubuntu-on-host.sh`**
 
 11. **`prepare-ubuntu-inner-image.sh`** (on metal):
@@ -151,9 +151,9 @@ Windows saw parent hypervisor (KVM). Fix: `kvm_hidden`, strip QEMU hyperv enligh
 
 Skylake CPU model in KVM XML caused Automatic Repair loop. Fix: **`Cascadelake-Server-noTSX`**. See hiccup #15.
 
-### “L2 green” but wrong architecture
+### L2 proof passes but inner is not on Hyper-V
 
-Inner Ubuntu as sibling KVM guest on `br-default` passes ping tests but skips Hyper-V. Fix: `virsh list` must show **only** `win-hv-nested`; inner must exist in `Get-VM ubuntu-inner`.
+`virsh list` shows both `win-hv-nested` and `ubuntu-inner` — inner is a libvirt sibling, not a Hyper-V child. Cross-site ping may still work; the stack is not the claimed L2 path. Fix: remove metal-side `ubuntu-inner`, confirm `Get-VM ubuntu-inner` in Windows, redeploy via `deploy-real-l2.sh`.
 
 ### Inner `.20` never pingable (Hyper-V path)
 
@@ -181,7 +181,7 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 
 ## Lessons learned
 
-1. **Prove the layer you claim.** L2 ping alone is insufficient if the inner VM is on metal KVM.
+1. **Prove the layer you claim.** Verify inner is on Hyper-V (`Get-VM ubuntu-inner`), not a second libvirt guest.
 2. **Nested Hyper-V on KVM guests is sensitive to CPU model and enlightenments.** Treat XML as part of the contract.
 3. **Lab `10.x` ≠ VPC routable.** Always encapsulate (GRE) or restrict proofs to L0-only cross-site.
 4. **Cloud images on nested Hyper-V Gen2:** inject netplan with `virt-customize`; do not rely on DVD-first nocloud boot.
@@ -210,7 +210,7 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 | `invoke-routing-proof.sh` | Laptop | Layered routing proofs |
 | `experiment-nested-hyperv-cpu.sh` | Metal | CPU model sweep for vmms |
 
-Fallback (not real L2): `provision-ubuntu-inner-kvm.sh`
+| `provision-ubuntu-inner-kvm.sh` | Legacy / routing experiments only — not used in default deploy |
 
 ---
 

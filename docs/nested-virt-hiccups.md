@@ -13,22 +13,22 @@ c7i.metal (AL2023)
 
 ---
 
-## 1. "L2 is green" but it's the wrong architecture
+## 1. L2 proof green but inner VM is not on Hyper-V
 
 **Symptom:** `./invoke-routing-proof.sh --layer l2` passes; inner Ubuntu at `.20` is pingable cross-site.
 
-**Trap:** The inner VM may be a **sibling KVM guest** on `br-default`, not a child of Hyper-V. `virsh list` on the metal host shows both `win-hv-nested` and `ubuntu-inner`.
+**Trap:** The inner VM may be a **libvirt guest** on `br-default`, not a child of Hyper-V. `virsh list` on the metal host shows both `win-hv-nested` and `ubuntu-inner`.
 
 **How to tell:**
 
 ```bash
-virsh list --all                    # both VMs on metal = wrong L2 path
+virsh list --all                    # ubuntu-inner here = not Hyper-V L2
 # From Windows guest (WinRM):
 Get-VM ubuntu-inner                 # should exist here for real L2
 sc.exe query vmms                   # must be RUNNING
 ```
 
-**Fix:** Destroy metal `ubuntu-inner`, fix nested Hyper-V (`vmms`), provision Ubuntu via `deploy-inner-ubuntu-on-host.sh` (WinRM → Hyper-V).
+**Fix:** Remove libvirt `ubuntu-inner`, fix nested Hyper-V (`vmms`), provision via `deploy-inner-ubuntu-on-host.sh` (WinRM → Hyper-V).
 
 **Lesson:** Same lab IP + GRE routing can mask a missing hypervisor layer. Proofs must match the stack you claim.
 
@@ -97,13 +97,11 @@ Get-VM
 
 ---
 
-## 5. Metal KVM inner VM shortcut (deploy-inner-ubuntu.sh drift)
+## 5. Legacy inner deploy script (historical)
 
-**Symptom:** `deploy-inner-ubuntu.sh` uploads `provision-ubuntu-inner-kvm.sh` and says "Ubuntu on metal KVM".
+**Symptom:** Old docs or forks reference provisioning inner Ubuntu directly on metal libvirt.
 
-**Cause:** Hyper-V path blocked by `vmms`; agent pivoted to get L2 green without completing the nested chain.
-
-**Fix:** `deploy-inner-ubuntu.sh` must call `deploy-inner-ubuntu-on-host.sh` (Hyper-V path). Keep `provision-ubuntu-inner-kvm.sh` only as `--fallback` for routing experiments, not default L2.
+**Fix:** Default path is `deploy-inner-ubuntu-on-host.sh` → Hyper-V. See hiccup #1 if `virsh list` still shows `ubuntu-inner`.
 
 ---
 
@@ -256,7 +254,7 @@ Get-VM
 | `provision-ubuntu-inner-vm.ps1` | L2 Ubuntu on Hyper-V |
 | `deploy-inner-ubuntu-on-host.sh` | Orchestrate L2 on one site |
 | `deploy-inner-ubuntu.sh` | Both sites, Hyper-V path |
-| `provision-ubuntu-inner-kvm.sh` | **Fallback only** — metal KVM shortcut |
+| `provision-ubuntu-inner-kvm.sh` | Legacy — not default deploy |
 
 ---
 

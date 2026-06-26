@@ -62,7 +62,7 @@ systeminfo | findstr /i hyper
 # or on metal: scripts/deploy-real-l2.sh {site}
 ```
 
-Creates external vSwitch **`NestedVirt-Lab`**, Ubuntu 24.04 Gen2 VM at `10.{site}.1.20` on Hyper-V (not metal KVM).
+Creates external vSwitch **`NestedVirt-Lab`**, Ubuntu 24.04 Gen2 VM at `10.{site}.1.20` on Hyper-V.
 
 ## 5. Cross-site proof (L2)
 

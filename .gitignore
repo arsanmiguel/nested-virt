@@ -6,3 +6,4 @@ cloudformation/packaged-template.yaml
 cloudformation/.bootstrap-bucket.env
 cloudformation/parameters.json
 *.log
+.DS_Store

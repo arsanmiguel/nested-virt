@@ -25,7 +25,7 @@ This repo proves both **work on AWS** and gives you **layered diagnostics** when
 |-------|----------------|---------|
 | **L0** | Transport ENIs (`kvm-host-nic1`) ping across VPC | `./invoke-routing-proof.sh --layer l0` |
 | **L1** | Lab gateways `10.{site}.1.1` and Windows `.10` cross-site | `--layer l1` / `l1-cross` |
-| **L2** | Inner Ubuntu `.20` on **Hyper-V** (not metal KVM shortcut) | `--layer l2` |
+| **L2** | Inner Ubuntu `.20` on Hyper-V inside Windows | `--layer l2` |
 | **All** | Full matrix | `--layer all` |
 
 See the **[network diagram](docs/network-diagram.md)** for color-coded topology and packet paths.
@@ -119,7 +119,7 @@ Wait for `10.{site}.1.10` pingable; WinRM on port 5985. Password on host: `/var/
 # Or one site: SSM run scripts/deploy-real-l2.sh {0|1} on metal
 ```
 
-This runs: KVM XML fix → `vmms` → destroy metal KVM shortcut → Hyper-V Ubuntu @ `.20`
+This runs: KVM XML fix → `vmms` → Hyper-V Ubuntu @ `.20`
 
 ### 7. Prove everything
 
@@ -146,7 +146,7 @@ SITE_ID=0 AVAILABILITY_ZONE=us-east-1a ./run-site.sh
 |---------|----------------|
 | Inner `.20` down | `./scripts/fix-inner-hyperv-network.sh {site}` via SSM on metal |
 | `vmms` not running | [hiccups #2, #15](docs/nested-virt-hiccups.md) + `fix-kvm-nested-hyperv-xml.sh` |
-| Wrong L2 (two VMs in `virsh list`) | [hiccup #1](docs/nested-virt-hiccups.md) + `deploy-real-l2.sh` |
+| Two libvirt VMs (`win-hv-nested` + `ubuntu-inner`) | [hiccup #1](docs/nested-virt-hiccups.md) — inner must be on Hyper-V |
 | Cross-site lab dead | [hiccup #10](docs/nested-virt-hiccups.md) — GRE / peer routes |
 
 Full build narrative and chronological debug log: **[docs/BUILD.md](docs/BUILD.md)**
