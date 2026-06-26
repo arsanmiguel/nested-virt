@@ -4,6 +4,9 @@
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
       <path d="M0,0 L12,6 L0,12 Z" fill="#475569"/>
     </marker>
+    <marker id="arrow-purple" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#7c3aed"/>
+    </marker>
     <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.12"/>
     </filter>
@@ -41,22 +44,22 @@
     <rect x="60" y="240" width="500" height="58" rx="8" fill="#dcfce7" stroke="#16a34a"/>
     <text x="310" y="275" text-anchor="middle" font-size="20" font-weight="600">br-default | 10.0.1.1/24 | dnsmasq | GRE endpoint</text>
 
-    <rect x="100" y="320" width="420" height="58" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-    <text x="310" y="355" text-anchor="middle" font-size="20" font-weight="600">KVM / libvirt | win-hv-nested</text>
-    <text x="310" y="378" text-anchor="middle" font-size="16" fill="#64748b">Windows Server 2022 | 10.0.1.10</text>
+    <rect x="100" y="320" width="420" height="72" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+    <text x="310" y="350" text-anchor="middle" font-size="20" font-weight="600">KVM / libvirt | win-hv-nested</text>
+    <text x="310" y="374" text-anchor="middle" font-size="16" fill="#64748b">Windows Server 2022 | 10.0.1.10</text>
 
-    <rect x="140" y="400" width="340" height="58" rx="8" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
-    <text x="310" y="435" text-anchor="middle" font-size="20" font-weight="600">Hyper-V | NestedVirt-Lab vSwitch</text>
+    <rect x="140" y="414" width="340" height="58" rx="8" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
+    <text x="310" y="449" text-anchor="middle" font-size="20" font-weight="600">Hyper-V | NestedVirt-Lab vSwitch</text>
 
-    <rect x="180" y="480" width="260" height="58" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-    <text x="310" y="515" text-anchor="middle" font-size="20" font-weight="700">Ubuntu inner | 10.0.1.20</text>
+    <rect x="180" y="494" width="260" height="58" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="310" y="529" text-anchor="middle" font-size="20" font-weight="700">Ubuntu inner | 10.0.1.20</text>
 
-    <rect x="60" y="560" width="500" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-    <text x="310" y="592" text-anchor="middle" font-size="18" font-weight="600">nic1 - kvm-host-nic1 | transport ENI /28</text>
+    <rect x="60" y="574" width="500" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+    <text x="310" y="606" text-anchor="middle" font-size="18" font-weight="600">nic1 - kvm-host-nic1 | transport ENI /28</text>
 
     <line x1="310" y1="298" x2="310" y2="320" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="378" x2="310" y2="400" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="458" x2="310" y2="480" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="310" y1="392" x2="310" y2="414" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="310" y1="472" x2="310" y2="494" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
   </g>
 
   <g transform="translate(720,340)">
@@ -85,27 +88,27 @@
     <rect x="60" y="240" width="500" height="58" rx="8" fill="#ffedd5" stroke="#ea580c"/>
     <text x="310" y="275" text-anchor="middle" font-size="20" font-weight="600">br-default | 10.1.1.1/24 | dnsmasq | GRE endpoint</text>
 
-    <rect x="100" y="320" width="420" height="58" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
-    <text x="310" y="355" text-anchor="middle" font-size="20" font-weight="600">KVM / libvirt | win-hv-nested</text>
-    <text x="310" y="378" text-anchor="middle" font-size="16" fill="#64748b">Windows Server 2022 | 10.1.1.10</text>
+    <rect x="100" y="320" width="420" height="72" rx="8" fill="#ffffff" stroke="#64748b" stroke-width="2"/>
+    <text x="310" y="350" text-anchor="middle" font-size="20" font-weight="600">KVM / libvirt | win-hv-nested</text>
+    <text x="310" y="374" text-anchor="middle" font-size="16" fill="#64748b">Windows Server 2022 | 10.1.1.10</text>
 
-    <rect x="140" y="400" width="340" height="58" rx="8" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
-    <text x="310" y="435" text-anchor="middle" font-size="20" font-weight="600">Hyper-V | NestedVirt-Lab vSwitch</text>
+    <rect x="140" y="414" width="340" height="58" rx="8" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
+    <text x="310" y="449" text-anchor="middle" font-size="20" font-weight="600">Hyper-V | NestedVirt-Lab vSwitch</text>
 
-    <rect x="180" y="480" width="260" height="58" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
-    <text x="310" y="515" text-anchor="middle" font-size="20" font-weight="700">Ubuntu inner | 10.1.1.20</text>
+    <rect x="180" y="494" width="260" height="58" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+    <text x="310" y="529" text-anchor="middle" font-size="20" font-weight="700">Ubuntu inner | 10.1.1.20</text>
 
-    <rect x="60" y="560" width="500" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-    <text x="310" y="592" text-anchor="middle" font-size="18" font-weight="600">nic1 - kvm-host-nic1 | transport ENI /28</text>
+    <rect x="60" y="574" width="500" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+    <text x="310" y="606" text-anchor="middle" font-size="18" font-weight="600">nic1 - kvm-host-nic1 | transport ENI /28</text>
 
     <line x1="310" y1="298" x2="310" y2="320" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="378" x2="310" y2="400" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="458" x2="310" y2="480" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="310" y1="392" x2="310" y2="414" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="310" y1="472" x2="310" y2="494" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
   </g>
 
-  <line x1="590" y1="780" x2="720" y2="480" stroke="#7c3aed" stroke-width="3"/>
-  <line x1="880" y1="480" x2="680" y2="780" stroke="#7c3aed" stroke-width="3"/>
-  <text x="800" y="820" text-anchor="middle" font-size="20" font-weight="700" fill="#4338ca">L0 - transport ENIs reachable across VPC</text>
+  <!-- L0: transport ENIs (nic1) reachable across VPC -->
+  <line x1="620" y1="790" x2="980" y2="790" stroke="#7c3aed" stroke-width="3" marker-start="url(#arrow-purple)" marker-end="url(#arrow-purple)"/>
+  <text x="800" y="812" text-anchor="middle" font-size="20" font-weight="700" fill="#4338ca">L0 - transport ENIs reachable across VPC (172.31.x.x /28)</text>
 
   <path d="M 680 520 Q 800 500 880 520" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)"/>
   <path d="M 880 440 Q 800 420 680 440" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)"/>
