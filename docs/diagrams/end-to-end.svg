@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- BASELINE: locked hero topology - run ./docs/diagrams/render-end-to-end.sh after edits -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 Z" fill="#475569"/>
+    <marker id="arrow-gray-border-up" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,8 L4,0 L8,8 Z" fill="#475569"/>
     </marker>
-    <marker id="arrow-purple-right" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 Z" fill="#7c3aed"/>
-    </marker>
-    <marker id="arrow-purple-left" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
-      <path d="M12,0 L0,6 L12,12 Z" fill="#7c3aed"/>
-    </marker>
-    <marker id="arrow-red-right" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 Z" fill="#dc2626"/>
-    </marker>
-    <marker id="arrow-red-left" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
-      <path d="M12,0 L0,6 L12,12 Z" fill="#dc2626"/>
+    <marker id="arrow-gray-border-down" markerWidth="8" markerHeight="8" refX="4" refY="0" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L4,8 L8,0 Z" fill="#475569"/>
     </marker>
     <marker id="arrow-red-border-left" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M8,0 L0,4 L8,8 Z" fill="#dc2626"/>
@@ -22,11 +14,17 @@
     <marker id="arrow-red-border-right" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M0,0 L8,4 L0,8 Z" fill="#dc2626"/>
     </marker>
-    <marker id="arrow-blue-right" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/>
+    <marker id="arrow-blue-border-left" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M8,0 L0,4 L8,8 Z" fill="#2563eb"/>
     </marker>
-    <marker id="arrow-blue-left" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
-      <path d="M12,0 L0,6 L12,12 Z" fill="#2563eb"/>
+    <marker id="arrow-blue-border-right" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-purple-border-left" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M8,0 L0,4 L8,8 Z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrow-purple-border-right" markerWidth="8" markerHeight="8" refX="0" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#7c3aed"/>
     </marker>
     <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.12"/>
@@ -118,9 +116,9 @@
     <text x="310" y="592" text-anchor="middle" font-size="19" font-weight="600">nic1 (transport ENI /28)</text>
     <text x="310" y="616" text-anchor="middle" font-size="16" fill="#64748b">172.31.48.10 | GRE outer header src</text>
 
-    <line x1="310" y1="282" x2="310" y2="300" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="378" x2="310" y2="396" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="310" y1="290" x2="310" y2="298" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
+    <line x1="310" y1="386" x2="310" y2="394" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
+    <line x1="310" y1="462" x2="310" y2="470" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
   </g>
 
   <!-- Site 1 -->
@@ -156,33 +154,33 @@
     <text x="310" y="592" text-anchor="middle" font-size="19" font-weight="600">nic1 (transport ENI /28)</text>
     <text x="310" y="616" text-anchor="middle" font-size="16" fill="#64748b">172.31.48.26 | GRE outer header src</text>
 
-    <line x1="310" y1="282" x2="310" y2="300" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="378" x2="310" y2="396" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="310" y1="290" x2="310" y2="298" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
+    <line x1="310" y1="386" x2="310" y2="394" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
+    <line x1="310" y1="462" x2="310" y2="470" stroke="#475569" stroke-width="2" marker-start="url(#arrow-gray-border-up)" marker-end="url(#arrow-gray-border-down)"/>
   </g>
 
   <!-- VPC mgmt plane: nic0 across both sites -->
-  <line x1="650" y1="369" x2="680" y2="369" stroke="#2563eb" stroke-width="3"/>
-  <line x1="680" y1="369" x2="920" y2="369" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-left)" marker-end="url(#arrow-blue-right)"/>
-  <line x1="920" y1="369" x2="950" y2="369" stroke="#2563eb" stroke-width="3"/>
+  <line x1="658" y1="369" x2="672" y2="369" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
+  <line x1="688" y1="369" x2="912" y2="369" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
+  <line x1="928" y1="369" x2="942" y2="369" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
   <rect x="682" y="352" width="236" height="22" rx="4" fill="#fafafa"/>
   <text x="800" y="367" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC | SSM / SSH / NAT (nic0)</text>
 
   <!-- L1: br-default to GRE -->
-  <line x1="650" y1="503" x2="690" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
-  <line x1="920" y1="503" x2="1000" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
+  <line x1="658" y1="503" x2="682" y2="503" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
+  <line x1="918" y1="503" x2="1002" y2="503" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
   <!-- L2: Ubuntu inner guests to L2 box (lines in gap; arrow tips on box borders) -->
-  <line x1="510" y1="759" x2="680" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
-  <line x1="920" y1="759" x2="1090" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
+  <line x1="508" y1="759" x2="682" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
+  <line x1="918" y1="759" x2="1092" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
   <!-- L0: VPC fabric + transport ENIs (purple rides on blue VPC underlay) -->
-  <line x1="680" y1="872" x2="920" y2="872" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-left)" marker-end="url(#arrow-blue-right)"/>
+  <line x1="688" y1="872" x2="912" y2="872" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
   <rect x="682" y="828" width="236" height="36" rx="4" fill="#fafafa" fill-opacity="0.95"/>
   <text x="800" y="844" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
   <text x="800" y="860" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC routes transport /32</text>
 
-  <line x1="680" y1="900" x2="920" y2="900" stroke="#7c3aed" stroke-width="3" marker-start="url(#arrow-purple-left)" marker-end="url(#arrow-purple-right)"/>
+  <line x1="688" y1="900" x2="912" y2="900" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
   <text x="800" y="948" text-anchor="middle" font-size="17" font-weight="700" fill="#4338ca">L0 - transport ENIs reachable across VPC</text>
   <text x="800" y="966" text-anchor="middle" font-size="15" font-weight="600" fill="#4338ca">172.31.48.10 &lt;-&gt; 172.31.48.26</text>
 
