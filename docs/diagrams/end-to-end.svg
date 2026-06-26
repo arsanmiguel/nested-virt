@@ -48,7 +48,7 @@
   <rect x="45" y="802" width="1510" height="118" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <line x1="45" y1="416" x2="45" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <line x1="1555" y1="416" x2="1555" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
-  <rect x="670" y="316" width="260" height="98" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
+  <rect x="682" y="316" width="236" height="98" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <text x="800" y="338" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC fabric</text>
   <text x="800" y="354" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
   <text x="800" y="370" text-anchor="middle" font-size="12" font-weight="600" fill="#1d4ed8">primary ENIs</text>
@@ -175,8 +175,10 @@
   <!-- L0: transport ENIs across VPC (y=843 = nic1 vertical midpoint) -->
   <line x1="628" y1="843" x2="682" y2="843" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
   <line x1="918" y1="843" x2="972" y2="843" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
-  <text x="800" y="948" text-anchor="middle" font-size="17" font-weight="700" fill="#4338ca">L0 - transport ENIs reachable across VPC</text>
-  <text x="800" y="966" text-anchor="middle" font-size="15" font-weight="600" fill="#4338ca">172.31.48.10 &lt;-&gt; 172.31.48.26</text>
+  <rect x="682" y="814" width="236" height="58" rx="12" fill="#ede9fe" fill-opacity="0.35" stroke="#7c3aed" stroke-width="2" stroke-dasharray="10 6"/>
+  <text x="800" y="828" text-anchor="middle" font-size="13" font-weight="700" fill="#4338ca">L0 - transport ENIs</text>
+  <text x="800" y="842" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">reachable across VPC</text>
+  <text x="800" y="856" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">172.31.48.10 &lt;-&gt; 172.31.48.26</text>
 
   <text x="800" y="988" text-anchor="middle" font-size="16" fill="#64748b">Each column is one metal host. Same libvirt/Hyper-V names are per-host, not shared.</text>
 </svg>
