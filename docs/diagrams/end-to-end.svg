@@ -163,8 +163,6 @@
   <line x1="1230" y1="806" x2="1230" y2="796" stroke="#dc2626" stroke-width="3"/>
 
   <!-- L0: VPC fabric + transport ENIs (purple rides on blue VPC underlay) -->
-  <line x1="370" y1="843" x2="370" y2="872" stroke="#2563eb" stroke-width="3"/>
-  <line x1="1230" y1="843" x2="1230" y2="872" stroke="#2563eb" stroke-width="3"/>
   <line x1="680" y1="872" x2="920" y2="872" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-left)" marker-end="url(#arrow-blue-right)"/>
   <rect x="682" y="828" width="236" height="36" rx="4" fill="#fafafa" fill-opacity="0.95"/>
   <text x="800" y="844" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
