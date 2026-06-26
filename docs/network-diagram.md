@@ -30,6 +30,8 @@ Site 1 mirrors with `10.1.*` and its own transport IP.
 
 ## End-to-end topology (both AZs)
 
+**Readable hero diagram (recommended):** [diagrams/end-to-end.svg](diagrams/end-to-end.svg) — large vector, used in [README](../README.md).
+
 ```mermaid
 flowchart TB
   subgraph LEGEND[" "]
