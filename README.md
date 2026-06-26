@@ -90,23 +90,85 @@ Because if the business doesn't survive the migration...
 
 The lab spans two Availability Zones using EC2 bare metal and intentionally layers multiple virtualization technologies together.
 
-```text
-AWS EC2 c7i.metal-48xl
-        │
-        ▼
-Ubuntu Linux (KVM)
-        │
-        ▼
-Windows Server 2025
-        │
-        ▼
-Hyper-V
-        │
-        ▼
-Ubuntu Guests
-        │
-        ▼
-Cross-AZ GRE Overlay
+Color legend: 🔵 VPC · 🟣 transport ENI · 🟢 site 0 lab · 🟠 site 1 lab · 🔴 GRE · 🩵 Hyper-V vSwitch · ⚪ mgmt/NAT. Full map: [docs/network-diagram.md](docs/network-diagram.md).
+
+```mermaid
+flowchart TB
+  subgraph LEGEND[" "]
+    direction LR
+    L1["🔵 VPC 172.31.0.0/16"]
+    L2["🟣 Transport /28"]
+    L3["🟢 Site0 lab 10.0.0.0/16"]
+    L4["🟠 Site1 lab 10.1.0.0/16"]
+    L5["🔴 GRE gre-peer"]
+    L6["🩵 Hyper-V vSwitch"]
+    L7["⚪ Mgmt NAT nic0"]
+  end
+
+  subgraph AZ0["Availability Zone A — Site 0"]
+    direction TB
+
+    subgraph VPC0["🔵 VPC fabric"]
+      IGW0[Internet Gateway]
+      ENI0_M["⚪ kvm-host-nic0<br/>172.31.x.x<br/>SSH / SSM / NAT"]
+      ENI0_T["🟣 kvm-host-nic1<br/>172.31.x.x/28<br/>transport ENI"]
+    end
+
+    subgraph METAL0["c7i.metal-48xl — AL2023 host"]
+      BR0["🟢 br-default<br/>10.0.1.1/24<br/>dnsmasq + GRE endpoint"]
+      GRE0["🔴 gre-peer<br/>local=transport IP<br/>remote=peer transport"]
+      BR0 --- GRE0
+      GRE0 --- ENI0_T
+      ENI0_M --- BR0
+
+      subgraph KVM0["KVM / libvirt"]
+        WIN0["Windows Server 2022<br/>win-hv-nested<br/>🟢 10.0.1.10<br/>MAC 52:54:00:10:00:10<br/>e1000 → br-default"]
+      end
+      BR0 --- WIN0
+
+      subgraph HV0["Hyper-V inside Windows"]
+        VSW0["🩵 NestedVirt-Lab<br/>external vSwitch<br/>AllowManagementOS=true"]
+        VETH0["vEthernet NestedVirt-Lab<br/>10.0.1.10"]
+        INNER0["Ubuntu 24.04 inner<br/>ubuntu-inner Gen2<br/>🟢 10.0.1.20<br/>MAC 52:54:00:20:00:20"]
+        VSW0 --- VETH0
+        VSW0 --- INNER0
+      end
+      WIN0 --- VSW0
+    end
+  end
+
+  subgraph AZ1["Availability Zone B — Site 1"]
+    direction TB
+
+    subgraph VPC1["🔵 VPC fabric"]
+      ENI1_M["⚪ kvm-host-nic0"]
+      ENI1_T["🟣 kvm-host-nic1<br/>172.31.x.x/28"]
+    end
+
+    subgraph METAL1["c7i.metal-48xl — AL2023 host"]
+      BR1["🟠 br-default<br/>10.1.1.1/24"]
+      GRE1["🔴 gre-peer"]
+      BR1 --- GRE1
+      GRE1 --- ENI1_T
+
+      subgraph KVM1["KVM / libvirt"]
+        WIN1["Windows<br/>🟠 10.1.1.10"]
+      end
+      BR1 --- WIN1
+
+      subgraph HV1["Hyper-V"]
+        VSW1["🩵 NestedVirt-Lab"]
+        INNER1["Ubuntu inner<br/>🟠 10.1.1.20"]
+        VSW1 --- INNER1
+      end
+      WIN1 --- VSW1
+    end
+  end
+
+  ENI0_T <-. "🔵 L0: VPC routes transport /32" .-> ENI1_T
+  GRE0 <-. "🔴 L1: GRE encap 10.1.0.0/16" .-> GRE1
+  GRE1 <-. "🔴 L1: GRE encap 10.0.0.0/16" .-> GRE0
+  INNER0 <-. "🟢🟠 L2: cross-site via GRE + bridges" .-> INNER1
 ```
 
 Every layer can be independently validated.
