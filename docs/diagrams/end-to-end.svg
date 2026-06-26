@@ -2,9 +2,6 @@
 <!-- BASELINE: locked hero topology - run ./docs/diagrams/render-end-to-end.sh after edits -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
-    <marker id="arrow-gray-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L8,0 L4,8 Z" fill="#475569"/>
-    </marker>
     <marker id="arrow-red-border-left" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M8,0 L0,4 L8,8 Z" fill="#dc2626"/>
     </marker>
@@ -50,7 +47,7 @@
   <rect x="45" y="802" width="1510" height="118" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <line x1="45" y1="416" x2="45" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <line x1="1555" y1="416" x2="1555" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
-  <rect x="682" y="324" width="236" height="54" rx="4" fill="#fafafa" fill-opacity="0.95"/>
+  <rect x="682" y="322" width="236" height="58" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <text x="800" y="342" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC fabric</text>
   <text x="800" y="358" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
   <text x="800" y="374" text-anchor="middle" font-size="12" font-weight="600" fill="#1d4ed8">primary ENIs</text>
@@ -113,9 +110,10 @@
     <text x="310" y="592" text-anchor="middle" font-size="19" font-weight="600">nic1 (transport ENI /28)</text>
     <text x="310" y="616" text-anchor="middle" font-size="16" fill="#64748b">172.31.48.10 | GRE outer header src</text>
 
-    <line x1="310" y1="282" x2="310" y2="300" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
-    <line x1="310" y1="378" x2="310" y2="396" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
-    <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
+    <polygon points="302,210 318,210 310,222" fill="#475569"/>
+    <polygon points="302,285 318,285 310,297" fill="#475569"/>
+    <polygon points="302,381 318,381 310,393" fill="#475569"/>
+    <polygon points="302,457 318,457 310,469" fill="#475569"/>
   </g>
 
   <!-- Site 1 -->
@@ -151,9 +149,10 @@
     <text x="310" y="592" text-anchor="middle" font-size="19" font-weight="600">nic1 (transport ENI /28)</text>
     <text x="310" y="616" text-anchor="middle" font-size="16" fill="#64748b">172.31.48.26 | GRE outer header src</text>
 
-    <line x1="310" y1="282" x2="310" y2="300" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
-    <line x1="310" y1="378" x2="310" y2="396" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
-    <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow-gray-down)"/>
+    <polygon points="302,210 318,210 310,222" fill="#475569"/>
+    <polygon points="302,285 318,285 310,297" fill="#475569"/>
+    <polygon points="302,381 318,381 310,393" fill="#475569"/>
+    <polygon points="302,457 318,457 310,469" fill="#475569"/>
   </g>
 
   <!-- VPC mgmt plane: nic0 across both sites -->
@@ -173,7 +172,7 @@
 
   <!-- L0: VPC fabric + transport ENIs (purple rides on blue VPC underlay) -->
   <line x1="688" y1="872" x2="912" y2="872" stroke="#2563eb" stroke-width="2" marker-start="url(#arrow-blue-border-left)" marker-end="url(#arrow-blue-border-right)"/>
-  <rect x="682" y="828" width="236" height="36" rx="4" fill="#fafafa" fill-opacity="0.95"/>
+  <rect x="682" y="824" width="236" height="44" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
   <text x="800" y="844" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">172.31.0.0/16</text>
   <text x="800" y="860" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC routes transport /32</text>
 
