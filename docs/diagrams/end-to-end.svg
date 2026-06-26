@@ -16,6 +16,12 @@
     <marker id="arrow-red-left" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
       <path d="M12,0 L0,6 L12,12 Z" fill="#dc2626"/>
     </marker>
+    <marker id="arrow-blue-right" markerWidth="12" markerHeight="12" refX="0" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-blue-left" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+      <path d="M12,0 L0,6 L12,12 Z" fill="#2563eb"/>
+    </marker>
     <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.12"/>
     </filter>
@@ -38,6 +44,13 @@
     </g>
   </g>
 
+  <!-- VPC fabric underlay (172.31.0.0/16) - ENI layers only, not nested lab stack -->
+  <rect x="45" y="318" width="1510" height="98" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
+  <rect x="45" y="802" width="1510" height="118" rx="12" fill="#dbeafe" fill-opacity="0.35" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
+  <line x1="45" y1="416" x2="45" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
+  <line x1="1555" y1="416" x2="1555" y2="802" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 6"/>
+  <text x="800" y="338" text-anchor="middle" font-size="16" font-weight="700" fill="#1d4ed8">VPC 172.31.0.0/16 fabric (primary + transport ENIs)</text>
+
   <!-- L1 label + GRE box centered in column gap (680-920) -->
   <rect x="682" y="378" width="236" height="30" rx="4" fill="#fafafa"/>
   <text x="800" y="392" text-anchor="middle" font-size="14" font-weight="700" fill="#b91c1c">L1 - lab supernets</text>
@@ -56,7 +69,7 @@
     <text x="310" y="38" text-anchor="middle" font-size="26" font-weight="700" fill="#166534">AZ A - Site 0</text>
     <text x="310" y="64" text-anchor="middle" font-size="18" fill="#64748b">nested-virt-s0-01 | lab 10.0.0.0/16</text>
 
-    <rect x="30" y="82" width="560" height="74" rx="10" fill="#f3f4f6" stroke="#6b7280"/>
+    <rect x="30" y="82" width="560" height="74" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
     <text x="310" y="112" text-anchor="middle" font-size="20" font-weight="600">nic0 (primary ENI)</text>
     <text x="310" y="138" text-anchor="middle" font-size="16" fill="#64748b">172.31.0.10 | SSH / SSM / NAT</text>
 
@@ -94,7 +107,7 @@
     <text x="310" y="38" text-anchor="middle" font-size="26" font-weight="700" fill="#9a3412">AZ B - Site 1</text>
     <text x="310" y="64" text-anchor="middle" font-size="18" fill="#64748b">nested-virt-s1-01 | lab 10.1.0.0/16</text>
 
-    <rect x="30" y="82" width="560" height="74" rx="10" fill="#f3f4f6" stroke="#6b7280"/>
+    <rect x="30" y="82" width="560" height="74" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
     <text x="310" y="112" text-anchor="middle" font-size="20" font-weight="600">nic0 (primary ENI)</text>
     <text x="310" y="138" text-anchor="middle" font-size="16" fill="#64748b">172.31.0.11 | SSH / SSM / NAT</text>
 
@@ -126,6 +139,13 @@
     <line x1="310" y1="454" x2="310" y2="472" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
   </g>
 
+  <!-- VPC mgmt plane: nic0 across both sites -->
+  <line x1="650" y1="369" x2="680" y2="369" stroke="#2563eb" stroke-width="3"/>
+  <line x1="680" y1="369" x2="920" y2="369" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-left)" marker-end="url(#arrow-blue-right)"/>
+  <line x1="920" y1="369" x2="950" y2="369" stroke="#2563eb" stroke-width="3"/>
+  <rect x="682" y="352" width="236" height="22" rx="4" fill="#fafafa"/>
+  <text x="800" y="367" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC | SSM / SSH / NAT (nic0)</text>
+
   <!-- L1: br-default to GRE -->
   <line x1="650" y1="503" x2="690" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
   <line x1="910" y1="503" x2="1010" y2="503" stroke="#dc2626" stroke-width="3" marker-start="url(#arrow-red-left)" marker-end="url(#arrow-red-right)"/>
@@ -138,8 +158,16 @@
   <line x1="935" y1="806" x2="1230" y2="806" stroke="#dc2626" stroke-width="3" stroke-dasharray="8 5" marker-end="url(#arrow-red-right)"/>
   <line x1="1230" y1="806" x2="1230" y2="796" stroke="#dc2626" stroke-width="3"/>
 
-  <!-- L0: transport ENIs below site columns (site0 arrow left, site1 arrow right) -->
+  <!-- L0: VPC fabric + transport ENIs (purple rides on blue VPC underlay) -->
+  <line x1="370" y1="843" x2="370" y2="872" stroke="#2563eb" stroke-width="3"/>
+  <line x1="1230" y1="843" x2="1230" y2="872" stroke="#2563eb" stroke-width="3"/>
+  <line x1="680" y1="872" x2="920" y2="872" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-left)" marker-end="url(#arrow-blue-right)"/>
+  <rect x="682" y="854" width="236" height="22" rx="4" fill="#fafafa"/>
+  <text x="800" y="869" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">VPC routes transport /32</text>
+
   <line x1="680" y1="900" x2="920" y2="900" stroke="#7c3aed" stroke-width="3" marker-start="url(#arrow-purple-left)" marker-end="url(#arrow-purple-right)"/>
+  <line x1="370" y1="874" x2="370" y2="900" stroke="#7c3aed" stroke-width="3"/>
+  <line x1="1230" y1="874" x2="1230" y2="900" stroke="#7c3aed" stroke-width="3"/>
   <text x="800" y="930" text-anchor="middle" font-size="18" font-weight="700" fill="#4338ca">L0 - transport ENIs reachable across VPC (172.31.48.10 &lt;-&gt; 172.31.48.26)</text>
 
   <text x="800" y="962" text-anchor="middle" font-size="16" fill="#64748b">Each column is one metal host. Same libvirt/Hyper-V names are per-host, not shared.</text>
