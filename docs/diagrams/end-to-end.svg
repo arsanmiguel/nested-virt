@@ -2,12 +2,6 @@
 <!-- BASELINE: locked hero topology - run ./docs/diagrams/render-end-to-end.sh after edits -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" font-family="Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
-    <marker id="arrow-gray-border-up" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,8 L4,0 L8,8 Z" fill="#475569"/>
-    </marker>
-    <marker id="arrow-gray-border-down" markerWidth="8" markerHeight="8" refX="4" refY="0" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L4,8 L8,0 Z" fill="#475569"/>
-    </marker>
     <marker id="arrow-gray-down" markerWidth="8" markerHeight="8" refX="4" refY="8" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M0,0 L8,0 L4,8 Z" fill="#475569"/>
     </marker>
