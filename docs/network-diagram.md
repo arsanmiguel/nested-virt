@@ -30,7 +30,7 @@ Site 1 mirrors with `10.1.*` and its own transport IP.
 
 ## End-to-end topology (both AZs)
 
-**Readable hero diagram (recommended):** [diagrams/end-to-end.png](diagrams/end-to-end.png) (click through to [diagrams/end-to-end.svg](diagrams/end-to-end.svg) for vector) — used in [README](../README.md).
+**Readable hero diagram (recommended):** [diagrams/end-to-end.png](diagrams/end-to-end.png) (click through to [diagrams/end-to-end.svg](diagrams/end-to-end.svg) for vector) — used in [README](../README.md). After editing the SVG, run `./docs/diagrams/render-end-to-end.sh` so the PNG stays in sync.
 
 ```mermaid
 flowchart TB
