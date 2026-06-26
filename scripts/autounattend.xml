@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend"
+          xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64"
+      publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <SetupUILanguage><UILanguage>en-US</UILanguage></SetupUILanguage>
+      <InputLocale>en-US</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
+    <component name="Microsoft-Windows-Setup" processorArchitecture="amd64"
+      publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <DiskConfiguration>
+        <Disk wcm:action="add">
+          <CreatePartitions>
+            <CreatePartition wcm:action="add"><Order>1</Order><Size>500</Size><Type>Primary</Type></CreatePartition>
+            <CreatePartition wcm:action="add"><Order>2</Order><Extend>true</Extend><Type>Primary</Type></CreatePartition>
+          </CreatePartitions>
+          <ModifyPartitions>
+            <ModifyPartition wcm:action="add"><Order>1</Order><PartitionID>1</PartitionID><Label>System</Label><Format>NTFS</Format></ModifyPartition>
+            <ModifyPartition wcm:action="add"><Order>2</Order><PartitionID>2</PartitionID><Label>Windows</Label><Letter>C</Letter><Format>NTFS</Format></ModifyPartition>
+          </ModifyPartitions>
+          <DiskID>0</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+        </Disk>
+      </DiskConfiguration>
+      <ImageInstall>
+        <OSImage>
+          <InstallFrom><MetaData wcm:action="add"><Key>/IMAGE/NAME</Key><Value>Windows Server 2022 SERVERDATACENTER</Value></MetaData></InstallFrom>
+          <InstallTo><DiskID>0</DiskID><PartitionID>2</PartitionID></InstallTo>
+        </OSImage>
+      </ImageInstall>
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+        <FullName>Nested Virt</FullName>
+        <Organization>POC</Organization>
+      </UserData>
+    </component>
+  </settings>
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64"
+      publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <ComputerName>WIN-HV-SITEID</ComputerName>
+    </component>
+    <component name="Microsoft-Windows-TCPIP" processorArchitecture="amd64"
+      publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <Interfaces>
+        <Interface wcm:action="add">
+          <Identifier>@*</Identifier>
+          <Ipv4Settings><DhcpEnabled>true</DhcpEnabled></Ipv4Settings>
+        </Interface>
+      </Interfaces>
+    </component>
+  </settings>
+  <settings pass="oobeSystem">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64"
+      publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <AutoLogon>
+        <Enabled>true</Enabled><Username>Administrator</Username><Password><Value>ADMIN_PASSWORD</Value><PlainText>true</PlainText></Password>
+      </AutoLogon>
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>Open lab firewall ICMP and WinRM</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "Enable-PSRemoting -Force -SkipNetworkProfileCheck; netsh advfirewall firewall add rule name='NestedVirt-ICMP-In' protocol=icmpv4:8,any dir=in action=allow remoteip=10.0.0.0/8; netsh advfirewall firewall add rule name='NestedVirt-WinRM-In' protocol=tcp dir=in localport=5985 action=allow remoteip=10.0.0.0/8; Enable-NetFirewallRule -DisplayGroup 'File and Printer Sharing'"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Description>Set guest lab IP if DHCP missed</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "$ip='GUEST_IP'; $gw='BR_GATEWAY'; if (-not (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $ip.Split('/')[0] })) { New-NetIPAddress -InterfaceAlias (Get-NetAdapter | Select-Object -First 1).Name -IPAddress $ip.Split('/')[0] -PrefixLength 24 -DefaultGateway $gw -ErrorAction SilentlyContinue }"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <Description>Startup task: restore lab IP after Hyper-V reboots</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "$script='C:\ProgramData\nested-virt\restore-lab-ip.ps1'; New-Item -ItemType Directory -Force -Path 'C:\ProgramData\nested-virt' | Out-Null; @'\n$ip=''GUEST_IP''; $gw=''BR_GATEWAY''\n$nic=Get-NetAdapter|?{$_.Status -eq ''Up'' -and $_.Name -notmatch ''vEthernet''}|select -First 1\nif($nic -and -not (Get-NetIPAddress -InterfaceIndex $nic.ifIndex -AddressFamily IPv4|?{$_.IPAddress -eq $ip})){New-NetIPAddress -InterfaceIndex $nic.ifIndex -IPAddress $ip -PrefixLength 24 -DefaultGateway $gw -ErrorAction SilentlyContinue}\n'@ | Set-Content $script; schtasks /Create /TN NestedVirtRestoreLabIp /SC ONSTART /RU SYSTEM /RL HIGHEST /TR \"powershell.exe -ExecutionPolicy Bypass -File $script\" /F"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>4</Order>
+          <Description>Defer Hyper-V to enable-hyperv-nested-host.ps1 after KVM nested XML fix</Description>
+          <CommandLine>powershell.exe -ExecutionPolicy Bypass -Command "New-Item -ItemType Directory -Force -Path 'C:\ProgramData\nested-virt' | Out-Null; 'deferred' | Set-Content 'C:\ProgramData\nested-virt\hyperv-deferred.txt'"</CommandLine>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+      <UserAccounts>
+        <AdministratorPassword><Value>ADMIN_PASSWORD</Value><PlainText>true</PlainText></AdministratorPassword>
+      </UserAccounts>
+      <OOBE><HideEULAPage>true</HideEULAPage><NetworkLocation>Work</NetworkLocation><ProtectYourPC>3</ProtectYourPC></OOBE>
+    </component>
+  </settings>
+</unattend>

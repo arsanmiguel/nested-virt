@@ -1,0 +1,10 @@
+config.local.env
+config.env
+.last-stack*.env
+sites.env
+.domain-join-password.env
+cloudformation/packaged-template.yaml
+cloudformation/.bootstrap-bucket.env
+cloudformation/parameters.json
+*.log
+.DS_Store

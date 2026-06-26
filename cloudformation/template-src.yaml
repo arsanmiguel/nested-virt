@@ -1,0 +1,297 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Nested virt POC — Ubuntu 22.04 on c7i.metal-48xl, KVM, site-aware lab bridges,
+  transport ENIs for cross-AZ routing. (AL2023 lacks libvirt host packages in repos.)
+
+Parameters:
+  LaunchInstance:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+
+  ExtraHostNicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Private /28 per AZ for kvm-host-nic1/2 (transport layer).
+
+  VpcCidr:
+    Type: String
+    Default: 172.31.0.0/16
+
+  AdminCidr:
+    Type: String
+    Default: 172.31.0.0/16
+
+  InstanceName:
+    Type: String
+    Default: nested-virt-s0-01
+
+  InstanceType:
+    Type: String
+    Default: c7i.metal-48xl
+
+  SiteId:
+    Type: String
+    Default: '0'
+    Description: Site index — lab CIDRs use 10.{SiteId}.* (0=AZ-a, 1=AZ-b).
+
+  PeerTransportEniIp:
+    Type: String
+    Default: ''
+    Description: Peer site kvm-host-nic1 private IP (set via configure-peer-routing.sh).
+
+  PeerLabSupernet:
+    Type: String
+    Default: ''
+    Description: Peer site lab supernet, e.g. 10.1.0.0/16.
+
+  RootNotifyEmail:
+    Type: String
+    Default: ''
+
+  AssociatePublicIp:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+
+  AlarmPeriodSeconds:
+    Type: Number
+    Default: 120
+    MinValue: 60
+
+  UbuntuAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+
+  BootstrapBucket:
+    Type: String
+    Default: ''
+
+Conditions:
+  LaunchInstance: !Equals [!Ref LaunchInstance, 'true']
+  UsePublicIp: !Equals [!Ref AssociatePublicIp, 'true']
+
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Nested virt KVM metal host
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AdminCidr
+          Description: SSH
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !Ref VpcCidr
+          Description: ICMP diagnostics
+        - IpProtocol: -1
+          CidrIp: 10.0.0.0/8
+          Description: Lab supernets (site routing)
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Lab inbound (nested-virt proof and guest traffic)
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Lab outbound (IGW NAT, bootstrap, nested guest pulls)
+      Tags:
+        - Key: Name
+          Value: !Sub '${InstanceName}-sg'
+
+  ExtraHostNicSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: LaunchInstance
+    Properties:
+      GroupDescription: Transport ENIs - VPC east-west only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: !Ref VpcCidr
+          Description: VPC fabric east-west for transport ENI (L0 GRE)
+        - IpProtocol: -1
+          CidrIp: 10.0.0.0/8
+          Description: Lab supernets via transport (GRE overlay)
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: !Ref VpcCidr
+          Description: Transport ENI egress within VPC fabric
+      Tags:
+        - Key: Name
+          Value: !Sub '${InstanceName}-transport-sg'
+
+  Ec2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${InstanceName}-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: nested-virt-bootstrap
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nested-virt/*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/nested-virt/*'
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: NestedVirt/Bootstrap
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${BootstrapBucket}/nested-virt/*'
+
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${InstanceName}-profile'
+      Roles:
+        - !Ref Ec2Role
+
+  BootstrapTimingLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/nested-virt/bootstrap-timing/${InstanceName}'
+      RetentionInDays: 90
+      KmsKeyId: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/logs'
+
+  CloudWatchAgentConfigParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/nested-virt/${InstanceName}/cwagent-config'
+      Type: String
+      Value: !Sub |
+        {"agent":{"metrics_collection_interval":120,"run_as_user":"root"},"metrics":{"namespace":"CWAgent/NestedVirt","metrics_collected":{"cpu":{"measurement":[{"name":"cpu_usage_idle","rename":"CPU_Idle","unit":"Percent"}],"metrics_collection_interval":120,"totalcpu":true},"mem":{"measurement":[{"name":"mem_used_percent","rename":"Memory_Utilization","unit":"Percent"}],"metrics_collection_interval":120}}},"logs":{"logs_collected":{"files":{"collect_list":[{"file_path":"/var/log/amazon/launch-timing.log","log_group_name":"/nested-virt/launch-timing","log_stream_name":"{instance_id}","timezone":"UTC"}]}}}}
+
+  LinuxInstance:
+    Type: AWS::EC2::Instance
+    Condition: LaunchInstance
+    DependsOn:
+      - Ec2InstanceProfile
+      - CloudWatchAgentConfigParameter
+    Properties:
+      ImageId: !Ref UbuntuAmi
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
+        InstanceMetadataTags: enabled
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref SubnetId
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+          AssociatePublicIpAddress: !If [UsePublicIp, true, false]
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 200
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+        - DeviceName: /dev/sdb
+          Ebs:
+            VolumeSize: 2048
+            VolumeType: gp3
+            Iops: 16000
+            Encrypted: true
+            DeleteOnTermination: true
+      UserData: '{{USERDATA_B64}}'
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+        - Key: SiteId
+          Value: !Ref SiteId
+        - Key: PeerTransportEniIp
+          Value: !Ref PeerTransportEniIp
+        - Key: PeerLabSupernet
+          Value: !Ref PeerLabSupernet
+        - Key: ExtraHostNicCount
+          Value: '2'
+        - Key: Project
+          Value: nested-virt
+
+  ExtraHostNic1:
+    Type: AWS::EC2::NetworkInterface
+    Condition: LaunchInstance
+    Properties:
+      SubnetId: !Ref ExtraHostNicSubnetId
+      Description: Transport NIC 1 (kvm-host-nic1 uplink)
+      GroupSet:
+        - !Ref ExtraHostNicSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${InstanceName}-transport-nic1'
+
+  ExtraHostNic2:
+    Type: AWS::EC2::NetworkInterface
+    Condition: LaunchInstance
+    Properties:
+      SubnetId: !Ref ExtraHostNicSubnetId
+      Description: Transport NIC 2 (spare / cluster)
+      GroupSet:
+        - !Ref ExtraHostNicSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${InstanceName}-transport-nic2'
+
+  ExtraHostNic1Attachment:
+    Type: AWS::EC2::NetworkInterfaceAttachment
+    Condition: LaunchInstance
+    Properties:
+      InstanceId: !Ref LinuxInstance
+      NetworkInterfaceId: !Ref ExtraHostNic1
+      DeviceIndex: 1
+
+  ExtraHostNic2Attachment:
+    Type: AWS::EC2::NetworkInterfaceAttachment
+    Condition: LaunchInstance
+    Properties:
+      InstanceId: !Ref LinuxInstance
+      NetworkInterfaceId: !Ref ExtraHostNic2
+      DeviceIndex: 2
+
+Outputs:
+  InstanceId:
+    Condition: LaunchInstance
+    Value: !Ref LinuxInstance
+  TransportNic1Id:
+    Condition: LaunchInstance
+    Value: !Ref ExtraHostNic1
+  TransportNic1PrivateIp:
+    Condition: LaunchInstance
+    Value: !GetAtt ExtraHostNic1.PrimaryPrivateIpAddress
+  SiteId:
+    Value: !Ref SiteId
+  BootstrapTimingLogGroupName:
+    Value: !Ref BootstrapTimingLogGroup
