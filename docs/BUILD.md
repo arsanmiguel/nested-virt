@@ -206,11 +206,10 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 | `prepare-ubuntu-inner-image.sh` | Metal | VHDX + virt-customize + seed |
 | `provision-ubuntu-inner-vm.ps1` | Windows | Hyper-V inner VM |
 | `fix-inner-hyperv-network.sh` | Metal | Force redeploy inner (wrapper) |
+| `scripts/debug/diag-hyperv-inner.sh` | Metal | L2 diagnose (`quick`/`full`) or `cleanup` before redeploy |
 | `setup-gre-tunnel.sh` | Metal | GRE peer tunnel |
 | `invoke-routing-proof.sh` | Laptop | Layered routing proofs |
 | `experiment-nested-hyperv-cpu.sh` | Metal | CPU model sweep for vmms |
-
-| `provision-ubuntu-inner-kvm.sh` | Legacy / routing experiments only — not used in default deploy |
 
 ---
 

@@ -115,11 +115,13 @@ Get-VM
 
 ---
 
-## 7. Inner Ubuntu boot order / cloud-init failures (metal fallback path)
+## 7. Inner Ubuntu boot order / cloud-init failures (historical metal-inner path)
 
-**Symptom:** `virsh dumpxml ubuntu-inner` shows `<boot dev='cdrom'/>` only; guest hangs; no IP.
+**Symptom:** Old metal-side `ubuntu-inner` libvirt domain hung at boot; no `.20` IP.
 
-**Fixes that worked:**
+**Note:** The default L2 path is Hyper-V inner (`deploy-real-l2.sh`). This entry documents failures from the retired metal-inner experiment.
+
+**Fixes that worked before Hyper-V L2:**
 
 - `--boot hd,menu=off` (no seed CDROM boot)
 - `virt-customize` inject static netplan by MAC before first boot
@@ -131,7 +133,7 @@ Get-VM
 
 **Symptom:** Site 1 inner VM got `10.0.1.20` instead of `10.1.1.20`; apt/dpkg lock errors when Windows + inner deploy ran together.
 
-**Fix:** Always pass explicit site arg (`provision-ubuntu-inner-kvm.sh 1`). Serialize heavy deploys per host or use `flock` on apt.
+**Fix:** Always pass explicit site id to `deploy-real-l2.sh` / `deploy-inner-ubuntu-on-host.sh`. Serialize heavy deploys per host or use `flock` on apt.
 
 ---
 
@@ -225,6 +227,7 @@ Get-VM
 1. `prepare-ubuntu-inner-image.sh`: **`virt-customize`** inject static netplan by MAC into the served VHDX before first boot; default **`UBUNTU_RELEASE=24.04`**.
 2. `provision-ubuntu-inner-vm.ps1`: boot **disk only**; `-ForceReinstall` deletes VM **and** disk/seed artifacts before re-download.
 3. Run `./scripts/fix-inner-hyperv-network.sh {site}` (force redeploy wrapper) — upload scripts to S3 with **explicit** `aws s3 cp` per file (SSM for-loops with `\$f` get 403).
+4. Stuck inner VM artifacts: on metal, `./scripts/debug/diag-hyperv-inner.sh cleanup {site}` then redeploy.
 
 **Verify:** `Get-VMNetworkAdapter` Status → **Ok**; `ping 10.{site}.1.20` from metal; `./invoke-routing-proof.sh --layer l2`.
 
@@ -254,7 +257,7 @@ Get-VM
 | `provision-ubuntu-inner-vm.ps1` | L2 Ubuntu on Hyper-V |
 | `deploy-inner-ubuntu-on-host.sh` | Orchestrate L2 on one site |
 | `deploy-inner-ubuntu.sh` | Both sites, Hyper-V path |
-| `provision-ubuntu-inner-kvm.sh` | Legacy — not default deploy |
+| `scripts/debug/diag-hyperv-inner.sh` | L2 debug: `quick`, `full`, or `cleanup` |
 
 ---
 
