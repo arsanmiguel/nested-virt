@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 # Preserve caller env before config.env (must not export SITE_ID there)
 _CALLER_SITE_ID="${SITE_ID:-}"
 _CALLER_AZ="${AVAILABILITY_ZONE:-}"
@@ -29,4 +30,4 @@ KEY_NAME="${KEY_NAME}" SITE_ID="${SITE_ID}" LAUNCH_INSTANCE="${LAUNCH_INSTANCE}"
   AVAILABILITY_ZONE="${AVAILABILITY_ZONE}" TARGET_AVAILABILITY_ZONE="${AVAILABILITY_ZONE}" \
   "${ROOT}/cloudformation/deploy-stack.sh"
 
-echo "Done. Poll: SITE_ID=${SITE_ID} ./poll-timing.sh"
+echo "Done. Poll: SITE_ID=${SITE_ID} ./bin/poll-timing.sh"

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Open Windows guest firewall (ICMP/WinRM) on both sites via WinRM from metal hosts.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/sites.env" ]] || { echo "Missing sites.env"; exit 1; }
 # shellcheck source=/dev/null
@@ -32,4 +33,4 @@ apply_on "$SITE_0_INSTANCE_ID" "10.0.1.10" "Site 0"
 apply_on "$SITE_1_INSTANCE_ID" "10.1.1.10" "Site 1"
 
 echo ""
-echo "Run: ./invoke-routing-proof.sh --layer l1-guest"
+echo "Run: ./bin/invoke-routing-proof.sh --layer l1-guest"

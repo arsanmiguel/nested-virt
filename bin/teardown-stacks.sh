@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 

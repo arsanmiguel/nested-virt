@@ -2,6 +2,12 @@
 
 ## Production-Grade Nested Hypervisors, Cross-AZ Networking, and Failure-Domain Validation
 
+[![End-to-end nested-virt topology — two AZs, KVM, Hyper-V, Ubuntu, GRE overlay](docs/diagrams/end-to-end.png)](docs/diagrams/end-to-end.svg)
+
+**[Build & deploy](docs/BUILD.md)** · **[Network topology](docs/network-diagram.md)** · **[Why this exists](why.md)** · **Proof:** `./bin/invoke-routing-proof.sh --layer all`
+
+*Click the diagram for the full-size SVG. Mermaid + packet walk in [docs/network-diagram.md](docs/network-diagram.md).*
+
 > **Modernization is a business strategy. Continuity is an operational requirement.**
 >
 > Sometimes those timelines don't match.
@@ -85,15 +91,7 @@ Because if the business doesn't survive the migration...
 
 ...there won't be anything left to modernize.
 
----
-
-# What you're actually looking at
-
 The lab spans two Availability Zones using EC2 bare metal and intentionally layers multiple virtualization technologies together.
-
-[![End-to-end nested-virt topology — two AZs, KVM, Hyper-V, Ubuntu, GRE overlay](docs/diagrams/end-to-end.png)](docs/diagrams/end-to-end.svg)
-
-*Click the diagram to open the full-size vector SVG. Mermaid + packet-level detail in [docs/network-diagram.md](docs/network-diagram.md).*
 
 Every layer can be independently validated.
 
@@ -160,7 +158,7 @@ Somewhere between Layer 0 and Layer 2...
 
 This repository exists to prove exactly where.
 
-Not guess. 
+Not guess. 
 
 **Prove.**
 
@@ -242,11 +240,11 @@ If you're looking for a quick nested virtualization tutorial...
 
 There are better repositories.
 
-Because here be dragons. Nasty ones.
+Because here be dragons. Nasty ones.
 
 If you're looking for a production-grade migration laboratory that proves—not assumes—every layer of a complex virtualization stack...
 
-Welcome home, the dragon is awake. 
+Welcome home, the dragon is awake. 
 
 We'll start by proving Layer 0 isn't lying.
 
@@ -257,4 +255,3 @@ We'll start by proving Layer 0 isn't lying.
 > *It amplifies your understanding of it—or your misunderstanding of it.*
 >
 > **Production doesn't care which one it is.**
-

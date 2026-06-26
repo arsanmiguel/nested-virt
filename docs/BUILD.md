@@ -58,7 +58,7 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
 
 ### Phase 1 — Metal foundation
 
-1. **CloudFormation** per site: `run-site.sh` / `run-both-sites.sh`
+1. **CloudFormation** per site: `bin/run-site.sh` / `bin/run-both-sites.sh`
    - Instance type `c7i.metal-48xl`, AL2023
    - Primary ENI + transport ENI(s) on tagged `/28` subnets
    - Userdata runs `bootstrap.sh`
@@ -70,17 +70,17 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
    - Creates bridges; **`br-default`** gets `10.{site}.1.1/24`
    - Policy routing on transport ENI (tables 101/102)
 
-3. **`configure-peer-routing.sh`** (after both sites up):
+3. **`bin/configure-peer-routing.sh`** (after both sites up):
    - Reads transport IPs from `kvm-host-nic1`
    - Tags instances with `PeerTransportEniIp` and `PeerLabSupernet`
    - Applies `setup-gre-tunnel.sh` + `apply-peer-routes.sh`
    - Writes `sites.env`
 
-**Proof:** `./invoke-routing-proof.sh --layer l0` then `--layer l1`
+**Proof:** `./bin/invoke-routing-proof.sh --layer l0` then `--layer l1`
 
 ### Phase 2 — Windows L1 guest (KVM)
 
-4. **`deploy-hyperv-guest.sh`**
+4. **`bin/deploy-hyperv-guest.sh`**
    - Uploads `provision-windows-guest.sh`, `autounattend.xml` to S3
    - SSM runs provisioning on both metal hosts
 
@@ -94,7 +94,7 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
 
 6. **Autounattend** defers Hyper-V hypervisor install to day-2 script (hiccup #14)
 
-**Proof:** `./invoke-routing-proof.sh --layer l1-guest` and WinRM to `.10`
+**Proof:** `./bin/invoke-routing-proof.sh --layer l1-guest` and WinRM to `.10`
 
 ### Phase 3 — Enable nested Hyper-V inside Windows
 
@@ -112,7 +112,7 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
 
 ### Phase 4 — Ubuntu L2 on Hyper-V (real nested path)
 
-9. **`deploy-inner-ubuntu.sh`** or per-site **`deploy-real-l2.sh`**
+9. **`bin/deploy-inner-ubuntu.sh`** or per-site **`deploy-real-l2.sh`**
    - Upload L2 scripts to S3; SSM runs `deploy-real-l2.sh {site}`
 
 10. **`deploy-real-l2.sh`** orchestrates:
@@ -135,7 +135,7 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
     - Secure Boot off; **boot disk only** (seed ISO attached but not in boot order)
     - `ExposeVirtualizationExtensions $false` for plain Linux guest
 
-**Proof:** `./invoke-routing-proof.sh --layer l2`
+**Proof:** `./bin/invoke-routing-proof.sh --layer l2`
 
 ---
 
@@ -196,8 +196,8 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 | Script | Runs on | Purpose |
 |--------|---------|---------|
 | `bootstrap.sh` | Metal | Host bridges, nested KVM, NIC rename |
-| `configure-peer-routing.sh` | Laptop | Peer tags, GRE, `sites.env` |
-| `deploy-hyperv-guest.sh` | Laptop | SSM Windows L1 deploy both sites |
+| `bin/configure-peer-routing.sh` | Laptop | Peer tags, GRE, `sites.env` |
+| `bin/deploy-hyperv-guest.sh` | Laptop | SSM Windows L1 deploy both sites |
 | `provision-windows-guest.sh` | Metal | KVM Windows install |
 | `fix-kvm-nested-hyperv-xml.sh` | Metal | KVM XML for nested Hyper-V |
 | `enable-hyperv-nested-host.ps1` | Windows | vmms / hypervisorlaunchtype |
@@ -209,7 +209,7 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 | `scripts/debug/diag-hyperv-inner.sh` | Metal | L2 diagnose (`quick`/`full`) or `cleanup` before redeploy |
 | `scripts/security-scan.sh` | Laptop | Trivy + Checkov + Gitleaks (Docker); expects Colima |
 | `setup-gre-tunnel.sh` | Metal | GRE peer tunnel |
-| `invoke-routing-proof.sh` | Laptop | Layered routing proofs |
+| `bin/invoke-routing-proof.sh` | Laptop | Layered routing proofs |
 | `experiment-nested-hyperv-cpu.sh` | Metal | CPU model sweep for vmms |
 
 ---
@@ -218,7 +218,7 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 
 ```bash
 # From your laptop (needs sites.env + AWS creds)
-./invoke-routing-proof.sh --layer all
+./bin/invoke-routing-proof.sh --layer all
 
 # On metal — only Windows KVM guest
 virsh list --all   # expect win-hv-nested only

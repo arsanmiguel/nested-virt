@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Deploy Ubuntu 24.04 inner VMs on both sites via Hyper-V (real L2: KVM → Hyper-V → Ubuntu).
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 [[ -f "${ROOT}/sites.env" ]] || { echo "Missing sites.env"; exit 1; }
@@ -46,6 +47,6 @@ run_on_instance "$SITE_1_INSTANCE_ID" 1 "Site 1"
 
 echo ""
 echo "Real L2 path: metal KVM → Windows Hyper-V guest → Ubuntu inner @ 10.x.1.20"
-echo "Poll: ./invoke-routing-proof.sh --layer l2"
+echo "Poll: ./bin/invoke-routing-proof.sh --layer l2"
 echo "Verify vmms: WinRM sc.exe query vmms inside Windows guest"
 echo "Hiccups doc: docs/nested-virt-hiccups.md"

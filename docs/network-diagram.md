@@ -197,7 +197,7 @@ flowchart TB
 
 | Layer | Command | Proves |
 |-------|---------|--------|
-| L0 | `./invoke-routing-proof.sh --layer l0` | Transport ENIs reachable across VPC |
+| L0 | `./bin/invoke-routing-proof.sh --layer l0` | Transport ENIs reachable across VPC |
 | L1 | `--layer l1` | Remote lab gateway (`10.x.1.1`) via GRE |
 | L1 cross | `--layer l1-cross` | Remote Windows guest `.10` |
 | L2 | `--layer l2` | Inner Ubuntu `.20` local + cross-site |

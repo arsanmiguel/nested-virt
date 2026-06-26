@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tag both instances with peer transport IPs and apply host routes via SSM.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 

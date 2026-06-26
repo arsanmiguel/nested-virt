@@ -15,7 +15,7 @@ c7i.metal (AL2023)
 
 ## 1. L2 proof green but inner VM is not on Hyper-V
 
-**Symptom:** `./invoke-routing-proof.sh --layer l2` passes; inner Ubuntu at `.20` is pingable cross-site.
+**Symptom:** `./bin/invoke-routing-proof.sh --layer l2` passes; inner Ubuntu at `.20` is pingable cross-site.
 
 **Trap:** The inner VM may be a **libvirt guest** on `br-default`, not a child of Hyper-V. `virsh list` on the metal host shows both `win-hv-nested` and `ubuntu-inner`.
 
@@ -177,7 +177,7 @@ Get-VM
 2. Script restores lab IP **before** scheduling reboot (`Restore-LabIp`).
 3. Register **startup scheduled task before** `Install-WindowsFeature Hyper-V` in autounattend (order 3 task, order 4 Hyper-V) — otherwise Hyper-V reboot skips task creation.
 4. Recovery on metal: restart dnsmasq, `virsh destroy && virsh start win-hv-nested`, wait for startup task (up to 10 min).
-5. If still APIPA: `FORCE_REINSTALL=1 ./deploy-hyperv-guest.sh`.
+5. If still APIPA: `FORCE_REINSTALL=1 ./bin/deploy-hyperv-guest.sh`.
 
 ---
 
@@ -229,7 +229,7 @@ Get-VM
 3. Run `./scripts/fix-inner-hyperv-network.sh {site}` (force redeploy wrapper) — upload scripts to S3 with **explicit** `aws s3 cp` per file (SSM for-loops with `\$f` get 403).
 4. Stuck inner VM artifacts: on metal, `./scripts/debug/diag-hyperv-inner.sh cleanup {site}` then redeploy.
 
-**Verify:** `Get-VMNetworkAdapter` Status → **Ok**; `ping 10.{site}.1.20` from metal; `./invoke-routing-proof.sh --layer l2`.
+**Verify:** `Get-VMNetworkAdapter` Status → **Ok**; `ping 10.{site}.1.20` from metal; `./bin/invoke-routing-proof.sh --layer l2`.
 
 ---
 
@@ -241,7 +241,7 @@ Get-VM
 | Hyper-V host alive | `sc.exe query vmms` → RUNNING |
 | Inner on Hyper-V | WinRM: `Get-VM ubuntu-inner` → Running |
 | Inner IP | `ping 10.{site}.1.20` from metal |
-| Cross-site | `./invoke-routing-proof.sh --layer l2` |
+| Cross-site | `./bin/invoke-routing-proof.sh --layer l2` |
 
 ---
 
@@ -256,7 +256,7 @@ Get-VM
 | `prepare-ubuntu-inner-image.sh` | VHDX + seed on metal |
 | `provision-ubuntu-inner-vm.ps1` | L2 Ubuntu on Hyper-V |
 | `deploy-inner-ubuntu-on-host.sh` | Orchestrate L2 on one site |
-| `deploy-inner-ubuntu.sh` | Both sites, Hyper-V path |
+| `bin/deploy-inner-ubuntu.sh` | Both sites, Hyper-V path |
 | `scripts/debug/diag-hyperv-inner.sh` | L2 debug: `quick`, `full`, or `cleanup` |
 
 ---

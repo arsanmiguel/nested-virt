@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Routing proof matrix — L0 transport ENI, L1 lab gateways, L1 guests.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/sites.env" ]] && source "${ROOT}/sites.env"
 

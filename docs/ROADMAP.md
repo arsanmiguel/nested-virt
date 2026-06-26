@@ -11,7 +11,7 @@ The current lab is **CloudFormation + bash + SSM + S3 bootstrap**. It works and 
 | Compute | CFN `deploy-stack.sh` | `aws_instance` metal × 2, AZ spread |
 | Networking | CFN ENIs, SGs, `/28` transport subnets | `aws_network_interface`, routes, SG modules |
 | Bootstrap | Userdata → `bootstrap.sh` | Same scripts via `templatefile` / S3 object refs |
-| Peer routing | `configure-peer-routing.sh` | `null_resource` + SSM or TF-managed routes after both instances exist |
+| Peer routing | `bin/configure-peer-routing.sh` | `null_resource` + SSM or TF-managed routes after both instances exist |
 | State | `.last-stack-site*.env`, `sites.env` | TF outputs → `sites.tfvars` or SSM parameters |
 | Proofs | `invoke-routing-proof.sh` | Unchanged — consumes instance IDs from TF output |
 
@@ -47,7 +47,7 @@ terraform/
 - [ ] TF outputs compatible with `sites.env`
 - [ ] SSM association or `null_resource` for peer GRE after both sites
 - [ ] README section: `terraform apply` path alongside CFN
-- [ ] Deprecate or wrap `run-both-sites.sh` as thin TF wrapper
+- [ ] Deprecate or wrap `bin/run-both-sites.sh` as thin TF wrapper
 
 ---
 

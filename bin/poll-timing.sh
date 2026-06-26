@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 
 SITE_ID="${SITE_ID:-0}"
 ENV_FILE="${ROOT}/.last-stack-site${SITE_ID}.env"
 [[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
-: "${INSTANCE_ID:?Set INSTANCE_ID or deploy via run-site.sh}"
+: "${INSTANCE_ID:?Set INSTANCE_ID or deploy via bin/run-site.sh}"
 
 INTERVAL="${INTERVAL:-60}"
 ONCE="${ONCE:-0}"

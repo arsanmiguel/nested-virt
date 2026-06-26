@@ -58,7 +58,7 @@ systeminfo | findstr /i hyper
 **Automated path (recommended):** see [BUILD.md](BUILD.md) phase 4.
 
 ```bash
-./deploy-inner-ubuntu.sh              # both sites
+./bin/deploy-inner-ubuntu.sh              # both sites
 # or on metal: scripts/deploy-real-l2.sh {site}
 ```
 
@@ -67,8 +67,8 @@ Creates external vSwitch **`NestedVirt-Lab`**, Ubuntu 24.04 Gen2 VM at `10.{site
 ## 5. Cross-site proof (L2)
 
 ```bash
-./invoke-routing-proof.sh --layer l2
-./invoke-routing-proof.sh --layer all
+./bin/invoke-routing-proof.sh --layer l2
+./bin/invoke-routing-proof.sh --layer all
 ```
 
 Topology: [network-diagram.md](network-diagram.md). Triage: [nested-virt-hiccups.md](nested-virt-hiccups.md).
@@ -79,7 +79,7 @@ Topology: [network-diagram.md](network-diagram.md). Triage: [nested-virt-hiccups
 |---------|--------|
 | Hyper-V won't install in guest | `nested=Y`, CPU mode `host-passthrough`, enough vCPUs/RAM |
 | Guest no internet | NAT rule on host for `10.{SiteId}.1.0/24` → `kvm-host-nic0` |
-| Can't ping peer site lab | `configure-peer-routing.sh`, tags `PeerTransportEniIp` / `PeerLabSupernet` |
+| Can't ping peer site lab | `bin/configure-peer-routing.sh`, tags `PeerTransportEniIp` / `PeerLabSupernet` |
 | Same IP on both sites | SiteId must differ (0 vs 1) |
 
 ## re:Invent demo beat

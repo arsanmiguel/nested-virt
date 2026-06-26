@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Upload guest provisioning scripts and run on both nested-virt metal hosts.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
 [[ -f "${ROOT}/sites.env" ]] || { echo "Missing sites.env — deploy sites and run configure-peer-routing.sh"; exit 1; }
@@ -49,7 +50,7 @@ run_on_instance "$SITE_1_INSTANCE_ID" "Site 1"
 
 echo ""
 echo "Next: if prep-only (no ISO), copy Windows Server 2022 ISO to S3 and re-run:"
-echo "  WINDOWS_ISO_S3_URI=s3://your-bucket/Win2022.iso ./deploy-hyperv-guest.sh"
+echo "  WINDOWS_ISO_S3_URI=s3://your-bucket/Win2022.iso ./bin/deploy-hyperv-guest.sh"
 echo ""
 echo "VNC to guest install (via SSH tunnel to metal host public IP):"
 echo "  ssh -L 5900:127.0.0.1:5900 -i ~/.ssh/${KEY_NAME}.pem ubuntu@<metal-public-ip>"

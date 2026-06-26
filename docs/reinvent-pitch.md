@@ -67,7 +67,7 @@ Borrowed from `aws-metal-linux-launch` and `aws-metal-windows-launch`: metal lau
 
 ### The format: built, then broken
 
-1. **Green state.** Show the lab healthy. Run `./invoke-routing-proof.sh`. Everything passes. Nested stack is real. Two minutes, not twenty.
+1. **Green state.** Show the lab healthy. Run `./bin/invoke-routing-proof.sh`. Everything passes. Nested stack is real. Two minutes, not twenty.
 
 2. **Chaos monkey.** Run `./invoke-chaos-monkey.sh` (or pick a scenario). Script injects realistic failures across the routing layers and guest stack.
 
@@ -84,7 +84,7 @@ Each scenario should map to a routing layer and have a known fix path:
 | Scenario | What breaks | Symptom | Fix skill |
 |----------|-------------|---------|-----------|
 | **Stale policy route** | `fix-transport-routing.sh` inverse: wrong `ip rule` on `kvm-host-nic1` | L0 fails one direction | Read `ip rule`, match DHCP IP to policy table |
-| **Peer route deleted** | Drop `10.1.0.0/16 via peer` (or reverse) | L1 local ok, cross-site dead | Re-run `configure-peer-routing.sh` or manual route |
+| **Peer route deleted** | Drop `10.1.0.0/16 via peer` (or reverse) | L1 local ok, cross-site dead | Re-run `bin/configure-peer-routing.sh` or manual route |
 | **Transport ENI DHCP loss** | Flush `kvm-host-nic1` address | Peer discovery fails, L0 dead | `netplan apply`, dhclient, re-apply peer tags |
 | **Bridge uplink wrong** | `br-cluster` off wrong NIC (or down) | Lab gateway weirdness | `ip link`, bridge port audit |
 | **Guest stopped / wrong IP** | `virsh destroy`, or static IP typo in autounattend | L1-local ping fails | libvirt state, `br-default` ARP |
@@ -152,7 +152,7 @@ Close: **"Take the repo. Run the proofs. Run the chaos. Fix it before finance no
 - [ ] Scenario card deck (optional): audience picks "route death" vs "guest death" vs "double fault"
 - [ ] Leaderboard / timer (optional): time-to-green per scenario
 - [ ] Pre-session dry run checklist: lab green, chaos rewinds clean, SSM paths work
-- [ ] Cost slide: metal SKU, lab left up for session week, `./teardown-stacks.sh`
+- [ ] Cost slide: metal SKU, lab left up for session week, `./bin/teardown-stacks.sh`
 
 ### Repo work before pitch (not built yet)
 
