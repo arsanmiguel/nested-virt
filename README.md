@@ -90,7 +90,7 @@ Because if the business doesn't survive the migration...
 
 The lab spans two Availability Zones using EC2 bare metal and intentionally layers multiple virtualization technologies together.
 
-[![End-to-end nested-virt topology — two AZs, KVM, Hyper-V, Ubuntu, GRE overlay](docs/diagrams/end-to-end.png?v=fe38afb)](docs/diagrams/end-to-end.svg)
+[![End-to-end nested-virt topology — two AZs, KVM, Hyper-V, Ubuntu, GRE overlay](docs/diagrams/end-to-end.png?v=1cd4084)](docs/diagrams/end-to-end.svg)
 
 *Click the diagram to open the full-size vector SVG. Mermaid + packet-level detail in [docs/network-diagram.md](docs/network-diagram.md).*
 

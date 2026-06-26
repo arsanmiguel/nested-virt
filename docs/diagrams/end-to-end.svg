@@ -172,9 +172,9 @@
   <line x1="508" y1="759" x2="682" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
   <line x1="918" y1="759" x2="1092" y2="759" stroke="#dc2626" stroke-width="2" marker-start="url(#arrow-red-border-left)" marker-end="url(#arrow-red-border-right)"/>
 
-  <!-- L0: transport ENIs across VPC (y=843 = nic1 vertical midpoint) -->
-  <line x1="628" y1="843" x2="682" y2="843" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
-  <line x1="918" y1="843" x2="972" y2="843" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
+  <!-- L0: transport ENIs across VPC (y=843 = nic1 vertical midpoint; arrows stop at box border x=682/918) -->
+  <line x1="628" y1="843" x2="674" y2="843" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
+  <line x1="926" y1="843" x2="972" y2="843" stroke="#7c3aed" stroke-width="2" marker-start="url(#arrow-purple-border-left)" marker-end="url(#arrow-purple-border-right)"/>
   <rect x="682" y="814" width="236" height="58" rx="12" fill="#ede9fe" fill-opacity="0.35" stroke="#7c3aed" stroke-width="2" stroke-dasharray="10 6"/>
   <text x="800" y="828" text-anchor="middle" font-size="13" font-weight="700" fill="#4338ca">L0 - transport ENIs</text>
   <text x="800" y="842" text-anchor="middle" font-size="12" font-weight="600" fill="#4338ca">reachable across VPC</text>
