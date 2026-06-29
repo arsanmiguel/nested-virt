@@ -249,9 +249,8 @@ Welcome home, the dragon is awake.
 We'll start by proving Layer 0 isn't lying.
 
 ---
+> Things to remember at all times: 
 
-> *Automation doesn't eliminate complexity.*
->
-> *It amplifies your understanding of it—or your misunderstanding of it.*
+> *Automation DOES NOT eliminate complexity, It amplifies your understanding of it or your misunderstanding of it.*
 >
 > **Production doesn't care which one it is.**
