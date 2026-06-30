@@ -181,7 +181,6 @@ Resources:
     Properties:
       LogGroupName: !Sub '/nested-virt/bootstrap-timing/${InstanceName}'
       RetentionInDays: 90
-      KmsKeyId: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/logs'
 
   CloudWatchAgentConfigParameter:
     Type: AWS::SSM::Parameter

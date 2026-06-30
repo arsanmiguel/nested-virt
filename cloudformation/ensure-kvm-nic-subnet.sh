@@ -26,15 +26,6 @@ if cidrs_json:
 else:
     az_cidrs = {}
 
-if az not in az_cidrs:
-    print(
-        f"ERROR: no KVM NIC CIDR for {az}. Set KVM_NIC_SUBNET_CIDRS in config.env "
-        f'(JSON map) or pre-create subnet tagged Name={tag_name}.',
-        file=sys.stderr,
-    )
-    sys.exit(1)
-want_cidr = az_cidrs[az]
-
 def aws(*args):
     return subprocess.check_output(["aws", *args, "--region", region, "--output", "json"], text=True)
 
@@ -49,6 +40,15 @@ for s in subnets:
         print(sid)
         print(f"KVM NIC subnet exists {sid} az={az} cidr={s['CidrBlock']}", file=sys.stderr)
         sys.exit(0)
+
+if az not in az_cidrs:
+    print(
+        f"ERROR: no KVM NIC subnet for {az}. Pre-create subnet tagged Name={tag_name} "
+        f"or set KVM_NIC_SUBNET_CIDRS in config.env (JSON map).",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+want_cidr = az_cidrs[az]
 
 for s in subnets:
     if s["CidrBlock"] == want_cidr:

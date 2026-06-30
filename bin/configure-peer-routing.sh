@@ -21,25 +21,33 @@ source "$ENV1"
 SITE_1_INSTANCE_ID="$INSTANCE_ID"
 
 get_transport_ip() {
-  local iid="$1"
+  local iid="$1" site_env="$2"
   local cmd_id out
+  if [[ -f "$site_env" ]]; then
+    # shellcheck source=/dev/null
+    source "$site_env"
+    if [[ -n "${TRANSPORT_IP:-}" ]]; then
+      echo "$TRANSPORT_IP"
+      return 0
+    fi
+  fi
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$iid" \
     --document-name AWS-RunShellScript \
-    --parameters 'commands=["ip -4 -o addr show dev kvm-host-nic1 | awk \"{print \\$4}\" | cut -d/ -f1"]' \
+    --parameters 'commands=["ip=$(ip -4 -o addr show dev kvm-host-nic1 2>/dev/null | awk \"{print \\$4}\" | cut -d/ -f1); if [ -z \"$ip\" ]; then ip=$(ip -4 -o addr show | awk \"/172\\.31\\.96\\./{print \\$4}\" | cut -d/ -f1 | head -1); fi; echo -n \"$ip\""]' \
     --query Command.CommandId --output text)
   sleep 10
   out=$(aws ssm get-command-invocation --region "$AWS_REGION" \
     --command-id "$cmd_id" --instance-id "$iid" \
     --query StandardOutputContent --output text 2>/dev/null | tr -d '[:space:]')
   if [[ -z "$out" ]]; then
-    echo "ERROR: could not read kvm-host-nic1 IP on ${iid}" >&2
+    echo "ERROR: could not read transport IP on ${iid}" >&2
     exit 1
   fi
   echo "$out"
 }
 
-SITE_0_TRANSPORT_IP=$(get_transport_ip "$SITE_0_INSTANCE_ID")
-SITE_1_TRANSPORT_IP=$(get_transport_ip "$SITE_1_INSTANCE_ID")
+SITE_0_TRANSPORT_IP=$(get_transport_ip "$SITE_0_INSTANCE_ID" "$ENV0")
+SITE_1_TRANSPORT_IP=$(get_transport_ip "$SITE_1_INSTANCE_ID" "$ENV1")
 
 echo "Site 0: ${SITE_0_INSTANCE_ID} transport=${SITE_0_TRANSPORT_IP} (kvm-host-nic1)"
 echo "Site 1: ${SITE_1_INSTANCE_ID} transport=${SITE_1_TRANSPORT_IP} (kvm-host-nic1)"
