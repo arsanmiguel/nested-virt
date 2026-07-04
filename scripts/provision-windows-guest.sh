@@ -33,7 +33,7 @@ set_phase() { echo -n "$1" > "$PHASE_FILE"; }
 ensure_tools() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
-  apt-get install -y dosfstools mtools wget curl qemu-utils dnsmasq
+  apt-get install -y dosfstools mtools wget curl qemu-utils
 }
 
 validate_host() {
@@ -49,16 +49,31 @@ validate_host() {
 }
 
 fetch_virtio() {
-  if [[ -f "$VIRTIO_ISO" ]]; then
+  if (
+    # shellcheck source=/dev/null
+    source /tmp/ensure-lab-image-cache.sh 2>/dev/null || source "${STATE_DIR}/ensure-lab-image-cache.sh"
+    ensure_virtio_iso
+  ); then
+    if [[ -f "$VIRTIO_ISO" ]] && [[ $(stat -c%s "$VIRTIO_ISO") -ge 700000000 ]]; then
+      log "virtio iso ready size=$(stat -c%s "$VIRTIO_ISO")"
+      return 0
+    fi
+  fi
+  if [[ -f "$VIRTIO_ISO" ]] && [[ $(stat -c%s "$VIRTIO_ISO") -ge 700000000 ]]; then
     log "virtio iso exists size=$(stat -c%s "$VIRTIO_ISO")"
     return 0
   fi
-  log "downloading virtio-win iso"
-  wget -q -O "$VIRTIO_ISO" "$VIRTIO_ISO_URL"
-  log "virtio iso ready size=$(stat -c%s "$VIRTIO_ISO")"
+  log "ERROR virtio iso missing or too small at ${VIRTIO_ISO}"
+  return 1
 }
 
 fetch_windows_iso() {
+  # shellcheck source=/dev/null
+  source /tmp/ensure-lab-image-cache.sh 2>/dev/null || source "${STATE_DIR}/ensure-lab-image-cache.sh" 2>/dev/null || true
+  if declare -F ensure_windows_iso >/dev/null 2>&1; then
+    ensure_windows_iso
+    return 0
+  fi
   if [[ -f "$WIN_ISO" ]]; then
     log "windows iso exists size=$(stat -c%s "$WIN_ISO")"
     return 0
@@ -120,29 +135,10 @@ guest_mac_for_site() {
 
 setup_lab_dhcp() {
   local site_id="${1:-0}" guest_ip="${2}" gateway="${3}" mac="${4}"
-  local conf=/etc/nested-virt-dnsmasq.conf
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get install -y dnsmasq
-  local guest_ip="10.${site_id}.1.10" gateway="10.${site_id}.1.1"
-  local inner_mac inner_ip
-  inner_mac="$(printf '52:54:00:20:%02x:20' "$((10#${site_id}))")"
-  inner_ip="10.${site_id}.1.20"
-  cat > "$conf" <<EOF
-port=0
-interface=br-default
-bind-interfaces
-dhcp-host=${mac},${guest_ip},set:nested-guest,infinite
-dhcp-option=tag:nested-guest,3,${gateway}
-dhcp-option=tag:nested-guest,6,${gateway}
-dhcp-host=${inner_mac},${inner_ip},set:inner,infinite
-dhcp-option=tag:inner,3,${gateway}
-dhcp-option=tag:inner,6,${gateway}
-EOF
-  pkill -f "${conf}" 2>/dev/null || true
-  nohup dnsmasq -C "$conf" --pid-file=/run/nested-virt-dnsmasq.pid \
-    >> /var/log/nested-virt-provision.log 2>&1 &
-  ip link set br-default up 2>/dev/null || true
-  log "lab dhcp site=${site_id} mac=${mac} ip=${guest_ip} gw=${gateway}"
+  # shellcheck source=/dev/null
+  source /tmp/ensure-lab-dnsmasq.sh
+  start_lab_dnsmasq "$site_id" "$mac"
+  log "lab dhcp site=${site_id} mac=${mac} ip=10.${site_id}.1.10 gw=10.${site_id}.1.1"
 }
 
 start_cdrom_eject_watcher() {
@@ -206,14 +202,14 @@ start_install() {
     --disk path="$UNATTEND_FLOPPY",device=floppy \
     --network bridge="br-default",model=e1000,mac="${guest_mac}" \
     --os-variant win2k22 \
-    --graphics vnc,listen=0.0.0.0,port=5900 \
+    --graphics vnc,listen=127.0.0.1,port=5900 \
     --noautoconsole \
     --boot hd,cdrom,menu=off \
     --channel unix,target_type=virtio,name=org.qemu.guest_agent_0 \
     --memballoon virtio \
     --rng /dev/urandom
   start_cdrom_eject_watcher "$site_id"
-  log "virt-install submitted vm=${VM_NAME} vnc=0.0.0.0:5900 guest_ip=${guest_ip}"
+  log "virt-install submitted vm=${VM_NAME} vnc=127.0.0.1:5900 guest_ip=${guest_ip}"
 }
 
 main() {
@@ -249,6 +245,8 @@ main() {
   phase="$(get_phase)"
   case "$phase" in
     install)
+      fetch_virtio || exit 1
+      [[ -f "$WIN_ISO" ]] || fetch_windows_iso || { log "no windows iso at ${WIN_ISO}"; exit 1; }
       start_install
       set_phase complete
       log "complete vm=${VM_NAME} admin_password_file=${STATE_DIR}/win-guest-admin-password"

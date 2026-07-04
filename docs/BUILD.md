@@ -2,7 +2,7 @@
 
 **Authoritative build log** for the two-AZ nested virtualization lab on AWS bare metal. This is the long-form artifact: what was built, why, in what order, what broke, and how we fixed it.
 
-For a quick launch guide see [README.md](../README.md). For triage when something breaks see [nested-virt-hiccups.md](nested-virt-hiccups.md). For the color-coded network map see [network-diagram.md](network-diagram.md).
+For a quick launch guide see [README.md](../README.md). For triage when something breaks see [nested-virt-hiccups.md](nested-virt-hiccups.md). For the color-coded network map see [network-diagram.md](network-diagram.md). Intentional security exceptions (e.g. lab SG rules) are documented in [SECURITY-EXCEPTIONS.md](SECURITY-EXCEPTIONS.md); Epoxy/CSE exemption process in [EPOXY-CSE-EXEMPTION-REQUEST.md](EPOXY-CSE-EXEMPTION-REQUEST.md).
 
 ---
 
@@ -88,7 +88,7 @@ Full color-coded diagram: **[network-diagram.md](network-diagram.md)**.
    - Validates nested KVM enabled
    - Downloads Windows Server 2022 ISO (from S3) + virtio-win ISO
    - Builds autounattend floppy with site-specific IP
-   - **dnsmasq** on `br-default` with reservations for Windows (`.10`) and inner (`.20`) MACs
+   - **dnsmasq** on `br-default` with reservations for Windows (`.10`) and inner (`.20`) MACs — **DHCP only** (`port=0`); system `dnsmasq.service` masked (`scripts/ensure-lab-dnsmasq.sh`)
    - **`virt-install`** → `win-hv-nested` on `br-default`, **e1000**, MAC `52:54:00:10:00:{site}0`
    - CPU model **`Cascadelake-Server-noTSX`** (critical on 8488C — see hiccup #15)
 

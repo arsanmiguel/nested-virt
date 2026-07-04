@@ -31,6 +31,43 @@ set_phase() {
   echo -n "$1" > "$PHASE_FILE"
 }
 
+register_boot_network_recover() {
+  cat > /etc/systemd/system/nested-virt-boot-net.service <<EOF
+[Unit]
+Description=Nested virt post-boot network recovery
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${BOOTSTRAP_SCRIPT} --boot-network-recover
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable nested-virt-boot-net.service
+  mkdir -p /var/lib/cloud/scripts/per-boot
+  cat > /var/lib/cloud/scripts/per-boot/nested-virt-net.sh <<EOF
+#!/bin/bash
+${BOOTSTRAP_SCRIPT} --boot-network-recover >> /var/log/amazon/launch-timing.log 2>&1 || true
+EOF
+  chmod +x /var/lib/cloud/scripts/per-boot/nested-virt-net.sh
+  log 'PHASE=BOOTSTRAP_TASK registered nested-virt-boot-net.service + cloud-init per-boot'
+}
+
+boot_network_recover() {
+  local extra_nics
+  log 'PHASE=BOOT_NET begin'
+  harden_metal_dns_from_s3 2>/dev/null || harden_metal_dns_inline
+  extra_nics=$(imds_tag ExtraHostNicCount 2>/dev/null || echo 2)
+  configure_extra_nics "$extra_nics" || log 'PHASE=BOOT_NET nic warn'
+  configure_kvm_networking || log 'PHASE=BOOT_NET kvm warn'
+  configure_peer_routes || log 'PHASE=BOOT_NET peer warn'
+  log 'PHASE=BOOT_NET complete'
+}
+
 register_reboot_resume() {
   cat > /etc/systemd/system/nested-virt-bootstrap.service <<EOF
 [Unit]
@@ -103,27 +140,77 @@ ensure_awscli() {
 }
 
 init_vm_disk() {
-  local dev=""
-  for candidate in /dev/nvme1n1 /dev/xvdb /dev/sdb; do
-    [[ -b "$candidate" ]] && dev="$candidate" && break
+  local dev="" candidate size min_bytes=500000000000
+  for candidate in /dev/nvme*n1 /dev/xvdb /dev/sdb; do
+    [[ -b "$candidate" ]] || continue
+    if lsblk -n -o MOUNTPOINT "$candidate" 2>/dev/null | grep -qx '/'; then
+      log "PHASE=DISK skip ${candidate} (root filesystem)"
+      continue
+    fi
+    size=$(blockdev --getsize64 "$candidate" 2>/dev/null || echo 0)
+    if [[ "$size" -lt "$min_bytes" ]]; then
+      log "PHASE=DISK skip ${candidate} size=${size}"
+      continue
+    fi
+    dev="$candidate"
+    log "PHASE=DISK selected ${dev} size=${size}"
+    break
   done
   if [[ -z "$dev" ]]; then
     log "PHASE=DISK no data volume yet"
     return 0
   fi
-  if ! blkid "$dev" >/dev/null 2>&1; then
-    if grep -q '^ID=ubuntu' /etc/os-release 2>/dev/null; then
-      mkfs.ext4 -F "$dev"
-    else
-      mkfs.xfs -f "$dev"
-    fi
-    log "PHASE=DISK formatted ${dev}"
-  fi
   mkdir -p /var/lib/libvirt/images
   if ! mountpoint -q /var/lib/libvirt/images; then
+    if ! blkid "$dev" >/dev/null 2>&1; then
+      if grep -q '^ID=ubuntu' /etc/os-release 2>/dev/null; then
+        mkfs.ext4 -F "$dev"
+      else
+        mkfs.xfs -f "$dev"
+      fi
+      log "PHASE=DISK formatted ${dev}"
+    fi
     grep -q "$dev" /etc/fstab || echo "$dev /var/lib/libvirt/images ext4 defaults,nofail 0 2" >> /etc/fstab
-    mount /var/lib/libvirt/images
-    log "PHASE=DISK mounted ${dev} -> /var/lib/libvirt/images"
+    if mountpoint -q /var/lib/libvirt/images; then
+      log "PHASE=DISK already mounted ${dev} -> /var/lib/libvirt/images"
+    elif ! mount "$dev" /var/lib/libvirt/images 2>/dev/null; then
+      if mountpoint -q /var/lib/libvirt/images; then
+        log "PHASE=DISK mount point active after race on ${dev}"
+      else
+        log "PHASE=DISK mount failed on ${dev}"
+        return 1
+      fi
+    else
+      log "PHASE=DISK mounted ${dev} -> /var/lib/libvirt/images"
+    fi
+  fi
+  # Reuse existing cache if present; otherwise prefetch Win2022 + virtio from S3 during bootstrap.
+  local win_ok=0 virtio_ok=0
+  if [[ -f /var/lib/libvirt/images/Win2022.iso ]] && \
+     [[ $(stat -c%s /var/lib/libvirt/images/Win2022.iso 2>/dev/null || echo 0) -gt 5000000000 ]]; then
+    win_ok=1
+    log "PHASE=DISK windows iso cache present on data volume"
+  fi
+  if [[ -f /var/lib/libvirt/images/virtio-win.iso ]] && \
+     [[ $(stat -c%s /var/lib/libvirt/images/virtio-win.iso 2>/dev/null || echo 0) -gt 500000000 ]]; then
+    virtio_ok=1
+    log "PHASE=DISK virtio iso cache present on data volume"
+  fi
+  if [[ "$win_ok" -eq 1 && "$virtio_ok" -eq 1 ]]; then
+    :
+  elif command -v aws >/dev/null 2>&1; then
+    local region account
+    region="$(imds_get placement/region 2>/dev/null || true)"
+    account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
+      http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
+      sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
+    if [[ -n "$region" && -n "$account" ]] && \
+       aws s3 cp "s3://nested-virt-bootstrap-${account}/nested-virt/ensure-lab-image-cache.sh" \
+         /var/lib/nested-virt/ensure-lab-image-cache.sh --region "$region" 2>/dev/null; then
+      chmod +x /var/lib/nested-virt/ensure-lab-image-cache.sh
+      log "PHASE=DISK prefetch lab images (background)"
+      nohup bash /var/lib/nested-virt/ensure-lab-image-cache.sh prefetch >> /var/log/amazon/launch-timing.log 2>&1 &
+    fi
   fi
 }
 
@@ -155,7 +242,31 @@ install_features() {
       }
     systemctl enable --now libvirtd chronyd
   fi
+  harden_metal_dns_from_s3 || harden_metal_dns_inline
   log 'PHASE=FEATURES done'
+}
+
+harden_metal_dns_inline() {
+  systemctl stop dnsmasq 2>/dev/null || true
+  systemctl mask dnsmasq 2>/dev/null || true
+  command -v virsh >/dev/null 2>&1 && virsh net-autostart --disable default 2>/dev/null || true
+  command -v virsh >/dev/null 2>&1 && virsh net-destroy default 2>/dev/null || true
+  log 'PHASE=FEATURES dns harden inline (mask dnsmasq, disable libvirt default net)'
+}
+
+harden_metal_dns_from_s3() {
+  local region account
+  region="$(imds_get placement/region 2>/dev/null || true)"
+  account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
+    http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
+    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
+  [[ -n "$region" && -n "$account" ]] || return 1
+  aws s3 cp "s3://nested-virt-bootstrap-${account}/nested-virt/ensure-lab-dnsmasq.sh" \
+    /tmp/ensure-lab-dnsmasq.sh --region "$region" 2>/dev/null || return 1
+  # shellcheck source=/dev/null
+  source /tmp/ensure-lab-dnsmasq.sh
+  harden_metal_dns
+  log 'PHASE=FEATURES dns harden from s3'
 }
 
 configure_extra_nics() {
@@ -175,18 +286,19 @@ configure_extra_nics() {
   token="$(imds_token)"
   mapfile -t macs < <(curl -sf -H "X-aws-ec2-metadata-token: ${token}" \
     "http://169.254.169.254/latest/meta-data/network/interfaces/macs/" | tr -d '/')
+  : > /etc/udev/rules.d/70-nested-virt-nics.rules
   for mac in "${macs[@]}"; do
     devno=$(curl -sf -H "X-aws-ec2-metadata-token: ${token}" \
       "http://169.254.169.254/latest/meta-data/network/interfaces/macs/${mac}/device-number")
-    cur=$(ip -o link show | awk -v m="${mac}" 'BEGIN{
-      gsub(":","",m); m=tolower(m)
-    } {
-      split($2, a, ":"); iface=a[2]
-      for (i = 3; i <= NF; i++) {
-        gsub(":","",$i)
-        if (tolower($i) == m) { print iface; exit }
-      }
-    }')
+    cur=""
+    for iface in /sys/class/net/*; do
+      [[ -f "${iface}/address" ]] || continue
+      sysfs_mac=$(tr '[:upper:]' '[:lower:]' < "${iface}/address")
+      if [[ "$sysfs_mac" == "${mac,,}" ]]; then
+        cur=$(basename "$iface")
+        break
+      fi
+    done
     [[ -z "$cur" ]] && continue
     name="kvm-host-nic${devno}"
     if [[ "$cur" != "$name" ]]; then
@@ -195,7 +307,11 @@ configure_extra_nics() {
       ip link set "$name" up || true
       log "PHASE=NIC rename ${cur} -> ${name} (device-number=${devno} mac=${mac})"
     fi
+    echo "SUBSYSTEM==\"net\", ACTION==\"add\", ATTR{address}==\"${mac}\", NAME=\"kvm-host-nic${devno}\"" \
+      >> /etc/udev/rules.d/70-nested-virt-nics.rules
   done
+  udevadm control --reload-rules 2>/dev/null || true
+  log 'PHASE=NIC udev rules written /etc/udev/rules.d/70-nested-virt-nics.rules'
 
   for i in $(seq 1 "$expected"); do
     name="kvm-host-nic${i}"
@@ -282,7 +398,7 @@ ensure_bridge() {
   ip link set "$name" up
   if [[ -n "$uplink" ]]; then
     ip link set "$uplink" master "$name" 2>/dev/null || true
-    ip link set "$uplink" up
+    ip link set "$uplink" up 2>/dev/null || true
     log "PHASE=KVM bridge created name=${name} uplink=${uplink}"
   else
     log "PHASE=KVM bridge created name=${name} type=internal"
@@ -429,6 +545,7 @@ run_phase() {
       publish_build_timing
       set_phase complete
       systemctl disable nested-virt-bootstrap.service 2>/dev/null || true
+      register_boot_network_recover
       log 'PHASE=BOOTSTRAP finished'
       ;;
     complete)
@@ -446,6 +563,12 @@ run_phase() {
 main() {
   mkdir -p /var/log/amazon /var/lib/nested-virt
   chmod +x "$BOOTSTRAP_SCRIPT" 2>/dev/null || true
+
+  if [[ "${1:-}" == "--boot-network-recover" ]]; then
+    ensure_awscli
+    boot_network_recover
+    exit 0
+  fi
 
   local phase region
   phase="$(get_phase)"

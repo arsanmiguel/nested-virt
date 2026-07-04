@@ -15,6 +15,12 @@ INNER_IP="10.${SITE_ID}.1.20"
 
 log() { echo "$(date -Iseconds) REAL_L2 $*" | tee -a "$TIMING_LOG"; }
 
+if [[ -f /tmp/ensure-lab-dnsmasq.sh ]]; then
+  # shellcheck source=/dev/null
+  source /tmp/ensure-lab-dnsmasq.sh
+  harden_metal_dns || true
+fi
+
 wait_guest_ping() {
   local ip="$1" tries="${2:-60}"
   for _ in $(seq 1 "$tries"); do

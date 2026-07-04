@@ -105,7 +105,59 @@ Get-VM
 
 ---
 
-## 6. Windows reinstall wipes dnsmasq inner reservations
+## 6. CSE / Epoxy: “Recursive DNS Server Exposed to Internet”
+
+**Symptom:** Epoxy `EC2InstanceIsolate` stops metal hosts after CSE scan. Finding title: *Recursive DNS Server Exposed to Internet* (Critical).
+
+**Cause:** `apt-get install dnsmasq` enables **`dnsmasq.service`** listening on **:53** with recursion on the primary ENI. Lab config used **`port=0`** (DHCP-only on `br-default`) but never **stopped/masked the system service**.
+
+**Fix:** `scripts/ensure-lab-dnsmasq.sh` — `systemctl mask dnsmasq`; lab instance binds **`br-default` only**, **`port=0`**, **`no-resolv`**. Deployed via `deploy-hyperv-guest.sh`.
+
+**Verify:**
+
+```bash
+systemctl is-enabled dnsmasq    # masked
+ss -ulnp | grep ':53'           # no public :53
+grep '^port=0' /etc/nested-virt-dnsmasq.conf
+```
+
+See `docs/SECURITY-EXCEPTIONS.md`.
+
+---
+
+## 6b. L2 WinRM timeout on VHDX download (post-CSE pipeline)
+
+**Symptom:** `deploy-real-l2.sh` reaches step 6; log shows `winrm provision guest=10.x.1.10` then `ReadTimeout` after 7200s. Hyper-V / `vmms` are fine.
+
+**Cause:** One WinRM `run_ps` invoked `Invoke-WebRequest` for the full **~2.1GB** VHDX inside the guest. WS-Man read timeout kills the session even though HTTP transfer would eventually finish.
+
+**Fix:** `deploy-inner-ubuntu-on-host.sh` — stage PS1 via short WinRM; start **background `curl.exe`** on the Windows guest; poll with 60s WinRM probes; provision with `-SkipDownload`. Use **`flock`** on the metal host so overlapping deploys do not delete each other's VM/disk.
+
+---
+
+## 6c. Bootstrap fails on fresh metal (NVMe device order)
+
+**Symptom:** Site 0 bootstrap completes; site 1 stuck at `PHASE=REGION` or `PHASE=DISK mount failed`. No `BOOTSTRAP finished` in launch-timing log.
+
+**Cause:** Assumed `/dev/nvme1n1` is always the 2TB data volume. On some instances **`nvme1n1` is root (200G)** and **`nvme0n1` is data**. `mount` on root partition fails under `set -e`.
+
+**Fix:** `bootstrap.sh` `init_vm_disk` — skip devices with `/` mountpoint; select first block device **≥500GB**; tolerate already-mounted image dir.
+
+---
+
+## 7. CSE / Epoxy: VNC exposed to internet
+
+**Symptom:** Epoxy stops hosts after CSE scan. Finding: VNC/RFB on `0.0.0.0:5900`.
+
+**Cause:** `virt-install --graphics vnc,listen=0.0.0.0,port=5900` in `provision-windows-guest.sh`.
+
+**Fix:** `listen=127.0.0.1`; `scripts/ensure-lab-vnc.sh` patches existing domains; `bin/verify-no-public-vnc.sh` in `go.sh`.
+
+**VNC access:** `ssh -L 5900:127.0.0.1:5900 -i ~/.ssh/KEY.pem ubuntu@<metal-public-ip>` then connect VNC client to `localhost:5900`.
+
+---
+
+## 8. Windows reinstall wipes dnsmasq inner reservations
 
 **Symptom:** Inner VM boots but never gets `.20`; `grep 52:54:00:20 /etc/nested-virt-dnsmasq.conf` empty after Windows reprovision.
 
@@ -115,7 +167,7 @@ Get-VM
 
 ---
 
-## 7. Inner Ubuntu boot order / cloud-init failures (historical metal-inner path)
+## 8. Inner Ubuntu boot order / cloud-init failures (historical metal-inner path)
 
 **Symptom:** Old metal-side `ubuntu-inner` libvirt domain hung at boot; no `.20` IP.
 

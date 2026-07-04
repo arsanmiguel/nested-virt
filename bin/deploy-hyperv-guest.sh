@@ -12,6 +12,12 @@ source "${ROOT}/sites.env"
 : "${SITE_0_INSTANCE_ID:?}"
 : "${SITE_1_INSTANCE_ID:?}"
 : "${KEY_NAME:?Set KEY_NAME in config.local.env}"
+# shellcheck source=wait-deps.sh
+source "${BIN}/wait-deps.sh"
+
+echo "Waiting for SSM before guest deploy..."
+wait_ssm_online "$SITE_0_INSTANCE_ID"
+wait_ssm_online "$SITE_1_INSTANCE_ID"
 
 BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET:-nested-virt-bootstrap-${AWS_ACCOUNT_ID}}"
 WINDOWS_ISO_S3_URI="${WINDOWS_ISO_S3_URI:-}"
@@ -19,6 +25,9 @@ S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
 
 echo "=== Upload Hyper-V guest scripts ==="
 aws s3 cp "${ROOT}/scripts/provision-windows-guest.sh" "${S3_PREFIX}/provision-windows-guest.sh" --region "$AWS_REGION"
+aws s3 cp "${ROOT}/scripts/ensure-lab-dnsmasq.sh" "${S3_PREFIX}/ensure-lab-dnsmasq.sh" --region "$AWS_REGION"
+aws s3 cp "${ROOT}/scripts/ensure-lab-vnc.sh" "${S3_PREFIX}/ensure-lab-vnc.sh" --region "$AWS_REGION"
+aws s3 cp "${ROOT}/scripts/ensure-lab-image-cache.sh" "${S3_PREFIX}/ensure-lab-image-cache.sh" --region "$AWS_REGION"
 aws s3 cp "${ROOT}/scripts/autounattend.xml" "${S3_PREFIX}/autounattend.xml" --region "$AWS_REGION"
 aws s3 cp "${ROOT}/scripts/enable-hyperv.ps1" "${S3_PREFIX}/enable-hyperv.ps1" --region "$AWS_REGION"
 
@@ -36,7 +45,7 @@ run_on_instance() {
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$iid" \
     --document-name AWS-RunShellScript \
     --timeout-seconds 7200 \
-    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/provision-windows-guest.sh /tmp/provision-windows-guest.sh && aws s3 cp ${S3_PREFIX}/autounattend.xml /tmp/autounattend.xml && aws s3 cp ${S3_PREFIX}/enable-hyperv.ps1 /tmp/enable-hyperv.ps1 && chmod +x /tmp/provision-windows-guest.sh && nohup env UNATTEND_TEMPLATE=/tmp/autounattend.xml ENABLE_HYPERV_PS1=/tmp/enable-hyperv.ps1 ${env_prefix} /tmp/provision-windows-guest.sh > /var/log/nested-virt-provision.log 2>&1 & echo started\"]" \
+    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/provision-windows-guest.sh /tmp/provision-windows-guest.sh && aws s3 cp ${S3_PREFIX}/ensure-lab-dnsmasq.sh /tmp/ensure-lab-dnsmasq.sh && aws s3 cp ${S3_PREFIX}/ensure-lab-image-cache.sh /tmp/ensure-lab-image-cache.sh && aws s3 cp ${S3_PREFIX}/autounattend.xml /tmp/autounattend.xml && aws s3 cp ${S3_PREFIX}/enable-hyperv.ps1 /tmp/enable-hyperv.ps1 && chmod +x /tmp/provision-windows-guest.sh /tmp/ensure-lab-dnsmasq.sh /tmp/ensure-lab-image-cache.sh && nohup env UNATTEND_TEMPLATE=/tmp/autounattend.xml ENABLE_HYPERV_PS1=/tmp/enable-hyperv.ps1 ${env_prefix} /tmp/provision-windows-guest.sh > /var/log/nested-virt-provision.log 2>&1 & echo started\"]" \
     --query Command.CommandId --output text)
   sleep 15
   aws ssm get-command-invocation --region "$AWS_REGION" \

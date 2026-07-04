@@ -42,6 +42,9 @@ if ! aws s3api head-bucket --bucket "${BOOTSTRAP_BUCKET}" >/dev/null 2>&1; then
   fi
 fi
 aws s3 cp "${ROOT}/bootstrap.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh" --region "${AWS_REGION}"
+aws s3 cp "${ROOT}/scripts/ensure-lab-dnsmasq.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/ensure-lab-dnsmasq.sh" --region "${AWS_REGION}"
+aws s3 cp "${ROOT}/scripts/ensure-lab-vnc.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/ensure-lab-vnc.sh" --region "${AWS_REGION}"
+aws s3 cp "${ROOT}/scripts/ensure-lab-image-cache.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/ensure-lab-image-cache.sh" --region "${AWS_REGION}"
 aws s3 cp "${ROOT}/scripts/apply-peer-routes.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/apply-peer-routes.sh" --region "${AWS_REGION}"
 aws s3 cp "${ROOT}/scripts/fix-transport-routing.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/fix-transport-routing.sh" --region "${AWS_REGION}"
 aws s3 cp "${ROOT}/scripts/setup-gre-tunnel.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/setup-gre-tunnel.sh" --region "${AWS_REGION}"
@@ -167,12 +170,17 @@ if [[ "${LAUNCH_INSTANCE}" == "true" ]]; then
     --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue" --output text)
   TRANSPORT_IP=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" \
     --query "Stacks[0].Outputs[?OutputKey=='TransportNic1PrivateIp'].OutputValue" --output text)
+  PUBLIC_IP=$(aws cloudformation describe-stacks --stack-name "${STACK_NAME}" \
+    --query "Stacks[0].Outputs[?OutputKey=='PublicIp'].OutputValue" --output text 2>/dev/null || echo "")
   ENV_FILE="${ROOT}/.last-stack-site${SITE_ID}.env"
   {
     echo "STACK_NAME=${STACK_NAME}"
     echo "INSTANCE_ID=${IID}"
     echo "SITE_ID=${SITE_ID}"
     echo "TRANSPORT_IP=${TRANSPORT_IP}"
+    if [[ -n "$PUBLIC_IP" && "$PUBLIC_IP" != "None" ]]; then
+      echo "PUBLIC_IP=${PUBLIC_IP}"
+    fi
     echo "AVAILABILITY_ZONE=${TARGET_AVAILABILITY_ZONE:-unknown}"
     echo "DEPLOYED_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   } > "${ENV_FILE}"

@@ -101,7 +101,7 @@ Resources:
           Description: Lab supernets (site routing)
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
-          Description: Lab inbound (nested-virt proof and guest traffic)
+          Description: Lab inbound (documented exception, see docs/SECURITY-EXCEPTIONS.md)
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -190,12 +190,25 @@ Resources:
       Value: !Sub |
         {"agent":{"metrics_collection_interval":120,"run_as_user":"root"},"metrics":{"namespace":"CWAgent/NestedVirt","metrics_collected":{"cpu":{"measurement":[{"name":"cpu_usage_idle","rename":"CPU_Idle","unit":"Percent"}],"metrics_collection_interval":120,"totalcpu":true},"mem":{"measurement":[{"name":"mem_used_percent","rename":"Memory_Utilization","unit":"Percent"}],"metrics_collection_interval":120}}},"logs":{"logs_collected":{"files":{"collect_list":[{"file_path":"/var/log/amazon/launch-timing.log","log_group_name":"/nested-virt/launch-timing","log_stream_name":"{instance_id}","timezone":"UTC"}]}}}}
 
+  PrimaryHostNic:
+    Type: AWS::EC2::NetworkInterface
+    Condition: LaunchInstance
+    Properties:
+      SubnetId: !Ref SubnetId
+      Description: Primary host NIC (kvm-host-nic0)
+      GroupSet:
+        - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${InstanceName}-primary-nic0'
+
   LinuxInstance:
     Type: AWS::EC2::Instance
     Condition: LaunchInstance
     DependsOn:
       - Ec2InstanceProfile
       - CloudWatchAgentConfigParameter
+      - PrimaryHostNic
     Properties:
       ImageId: !Ref UbuntuAmi
       InstanceType: !Ref InstanceType
@@ -207,10 +220,7 @@ Resources:
         InstanceMetadataTags: enabled
       NetworkInterfaces:
         - DeviceIndex: 0
-          SubnetId: !Ref SubnetId
-          GroupSet:
-            - !Ref InstanceSecurityGroup
-          AssociatePublicIpAddress: !If [UsePublicIp, true, false]
+          NetworkInterfaceId: !Ref PrimaryHostNic
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -224,7 +234,7 @@ Resources:
             VolumeType: gp3
             Iops: 16000
             Encrypted: true
-            DeleteOnTermination: true
+            DeleteOnTermination: false
       UserData: '{{USERDATA_B64}}'
       Tags:
         - Key: Name
@@ -239,6 +249,23 @@ Resources:
           Value: '2'
         - Key: Project
           Value: nested-virt
+
+  MetalPublicEip:
+    Type: AWS::EC2::EIP
+    Condition: UsePublicIp
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${InstanceName}-eip'
+
+  MetalPublicEipAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Condition: UsePublicIp
+    DependsOn: LinuxInstance
+    Properties:
+      AllocationId: !GetAtt MetalPublicEip.AllocationId
+      NetworkInterfaceId: !Ref PrimaryHostNic
 
   ExtraHostNic1:
     Type: AWS::EC2::NetworkInterface
@@ -284,6 +311,10 @@ Outputs:
   InstanceId:
     Condition: LaunchInstance
     Value: !Ref LinuxInstance
+  PublicIp:
+    Condition: UsePublicIp
+    Description: Stable VPC EIP on primary ENI (survives stop/start; use for SSH/VNC tunnel)
+    Value: !Ref MetalPublicEip
   TransportNic1Id:
     Condition: LaunchInstance
     Value: !Ref ExtraHostNic1

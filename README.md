@@ -212,6 +212,32 @@ Usually around **2:18 AM on a Sunday.**
 
 ---
 
+# Lessons learned (post–CSE hardening)
+
+These failures appeared **after** Cloud Security Engineering scans and Epoxy isolation — not because nested virt stopped working in principle, but because hardening changed behavior the pipeline assumed.
+
+**Single entry point:** `./bin/go.sh --fresh` (teardown → deploy → CSE verify → L0/L1/L2 proofs). Idempotent resume: `./bin/go.sh`.
+
+| What broke | Root cause | Fix (in repo) |
+|------------|------------|---------------|
+| **Epoxy stops hosts** | CSE finding: recursive DNS on `:53` from system `dnsmasq.service` after `apt install dnsmasq` | `ensure-lab-dnsmasq.sh`: mask system dnsmasq; lab DHCP on `br-default` only with `port=0` |
+| **VNC finding** | libvirt default VNC on `0.0.0.0:5900` | `ensure-lab-vnc.sh`: `listen=127.0.0.1`; SSH tunnel for install |
+| **Windows guest never installs** | `virtio-win.iso` missing; sourcing `ensure-lab-image-cache.sh` ran `set -e` and broke wget fallback | Guard `set -e` when sourced; subshell fetch in `provision-windows-guest.sh`; validate ISO size |
+| **L2 never completes** | Single WinRM call blocked **2+ hours** downloading 2.1GB VHDX → 7200s timeout | `deploy-inner-ubuntu-on-host.sh`: background `curl.exe` on guest + short WinRM polls; `-SkipDownload` provision; `flock` against overlapping deploys |
+| **DHCP DNS useless post-CSE** | `port=0` means no DNS on gateway, but DHCP option 6 still pointed at gateway | DHCP option 6 → `1.1.1.1,1.0.0.1` in `ensure-lab-dnsmasq.sh` |
+| **Bootstrap dies on site 1** | NVMe order varies: `/dev/nvme1n1` can be **root** (200G), data volume is **2TB** `/dev/nvme0n1` | `bootstrap.sh` `init_vm_disk`: skip root mount, pick block device ≥500GB |
+| **Bootstrap silent exit** | `mount` on already-busy path with `set -e` | Tolerate existing mount; log and continue |
+
+**What did *not* need changing for CSE:** CFN GRE/transport layout, Hyper-V nested XML (`fix-kvm-nested-hyperv-xml.sh`), peer routing, or the proof matrix. SG `0.0.0.0/0` remains a documented lab exception (`docs/SECURITY-EXCEPTIONS.md`).
+
+**Validated 2026-07-04:** Full `./bin/go.sh --fresh` on new stacks `nested-virt-s0-01` + `nested-virt-s1-01` → **ALL GREEN** (`--layer all`).
+
+**ISO cache:** `Win2022.iso` lives in S3; hosts cache on the 2TB data EBS. Seed `virtio-win.iso` in the bootstrap bucket once to avoid upstream wget on every fresh data volume.
+
+Details: `docs/ITERATION-LOG.md`, `docs/nested-virt-hiccups.md` (#6b, #6c).
+
+---
+
 # Who this is for
 
 This repository is for my people.

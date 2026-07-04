@@ -5,6 +5,8 @@ BIN="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${BIN}/.." && pwd)"
 source "${ROOT}/config.env"
 [[ -f "${ROOT}/config.local.env" ]] && source "${ROOT}/config.local.env"
+# shellcheck source=wait-deps.sh
+source "${BIN}/wait-deps.sh"
 
 ENV0="${ROOT}/.last-stack-site0.env"
 ENV1="${ROOT}/.last-stack-site1.env"
@@ -19,6 +21,10 @@ SITE_0_INSTANCE_ID="$INSTANCE_ID"
 # shellcheck source=/dev/null
 source "$ENV1"
 SITE_1_INSTANCE_ID="$INSTANCE_ID"
+
+echo "Waiting for SSM on both metal hosts..."
+wait_ssm_online "$SITE_0_INSTANCE_ID"
+wait_ssm_online "$SITE_1_INSTANCE_ID"
 
 get_transport_ip() {
   local iid="$1" site_env="$2"

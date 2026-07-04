@@ -6,7 +6,8 @@ param(
   [Parameter(Mandatory = $true)][string]$SeedUrl,
   [Parameter(Mandatory = $true)][string]$InnerIp,
   [Parameter(Mandatory = $true)][string]$VmMac,
-  [switch]$ForceReinstall
+  [switch]$ForceReinstall,
+  [switch]$SkipDownload
 )
 
 $ErrorActionPreference = "Stop"
@@ -100,6 +101,7 @@ if (Get-VM -Name $VmName -ErrorAction SilentlyContinue) {
   }
 }
 
+if (-not $SkipDownload) {
 if ((Test-Path $legacyPart) -and -not (Test-Path $vhdxPart)) {
   Log "adopt legacy vhdx.part"
   Move-Item -Path $legacyPart -Destination $vhdxPart -Force
@@ -120,8 +122,12 @@ if (-not (Test-Path $vhdx) -or (Get-Item $vhdx).Length -lt 1GB) {
     Log "remove stale vhdx before download"
     Remove-Item $vhdx -Force -ErrorAction SilentlyContinue
   }
-  Log "download vhdx (to .part then replace)"
-  Invoke-WebRequest -Uri $VhdxUrl -OutFile $vhdxPart -UseBasicParsing
+  Log "download vhdx via curl.exe (to .part then replace)"
+  if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
+    throw "curl.exe missing on Windows guest"
+  }
+  & curl.exe -f -L -o $vhdxPart $VhdxUrl
+  if ($LASTEXITCODE -ne 0) { throw "VHDX curl download failed exit=$LASTEXITCODE" }
   if (-not (Test-Path $vhdxPart)) { throw "VHDX download failed" }
   if ((Get-Item $vhdxPart).Length -lt 1GB) { throw "VHDX download looks truncated" }
   Copy-Item -Path $vhdxPart -Destination $vhdx -Force
@@ -131,9 +137,23 @@ if (-not (Test-Path $vhdx) -or (Get-Item $vhdx).Length -lt 1GB) {
 }
 Log "download seed iso"
 if (-not (Test-Path $seed)) {
-  Invoke-WebRequest -Uri $SeedUrl -OutFile $seed -UseBasicParsing
+  & curl.exe -f -L -o $seed $SeedUrl
+  if ($LASTEXITCODE -ne 0) { throw "seed curl download failed exit=$LASTEXITCODE" }
 } else {
   Log "reuse existing seed iso"
+}
+} else {
+  if (-not (Test-Path $vhdx) -or (Get-Item $vhdx).Length -lt 1GB) {
+    throw "SkipDownload set but vhdx missing or too small at $vhdx"
+  }
+  Log "SkipDownload vhdx size=$((Get-Item $vhdx).Length)"
+  if (-not (Test-Path $seed)) {
+    Log "download seed iso (SkipDownload path)"
+    & curl.exe -f -L -o $seed $SeedUrl
+    if ($LASTEXITCODE -ne 0) { throw "seed curl download failed exit=$LASTEXITCODE" }
+  } else {
+    Log "reuse existing seed iso"
+  }
 }
 
 Log "create gen2 vm $VmName on Hyper-V"
