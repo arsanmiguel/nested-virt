@@ -185,8 +185,10 @@ run_pipeline() {
     step "L2 skipped (both 10.x.1.20 up)"
   fi
 
-  step "FINAL PROOFS L2 + all"
+  step "FINAL PROOFS L2 + internet + all"
   "${BIN}/invoke-routing-proof.sh" --layer l2
+  "${BIN}/ensure-lab-internet.sh"
+  "${BIN}/invoke-routing-proof.sh" --layer internet
   "${BIN}/invoke-routing-proof.sh" --layer all
 
   step "ALL GREEN ✓"

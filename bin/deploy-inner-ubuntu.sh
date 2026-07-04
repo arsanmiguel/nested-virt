@@ -20,6 +20,8 @@ S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
 
 SCRIPTS=(
   ensure-lab-dnsmasq.sh
+  ensure-lab-guest-dns.ps1
+  ensure-inner-guest-dns.sh
   fix-kvm-nested-hyperv-xml.sh
   enable-hyperv-nested-host.ps1
   prepare-ubuntu-inner-image.sh
@@ -40,7 +42,7 @@ run_on_instance() {
   cmd_id=$(aws ssm send-command --region "$AWS_REGION" --instance-ids "$iid" \
     --document-name AWS-RunShellScript \
     --timeout-seconds 7200 \
-    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/fix-kvm-nested-hyperv-xml.sh /tmp/fix-kvm-nested-hyperv-xml.sh && aws s3 cp ${S3_PREFIX}/ensure-lab-dnsmasq.sh /tmp/ensure-lab-dnsmasq.sh && aws s3 cp ${S3_PREFIX}/enable-hyperv-nested-host.ps1 /tmp/enable-hyperv-nested-host.ps1 && aws s3 cp ${S3_PREFIX}/prepare-ubuntu-inner-image.sh /tmp/prepare-ubuntu-inner-image.sh && aws s3 cp ${S3_PREFIX}/provision-ubuntu-inner-vm.ps1 /tmp/provision-ubuntu-inner-vm.ps1 && aws s3 cp ${S3_PREFIX}/deploy-inner-ubuntu-on-host.sh /tmp/deploy-inner-ubuntu-on-host.sh && aws s3 cp ${S3_PREFIX}/deploy-real-l2.sh /tmp/deploy-real-l2.sh && chmod +x /tmp/*.sh && nohup /tmp/deploy-real-l2.sh ${site_id} >> /var/log/nested-virt-inner-deploy.log 2>&1 & echo started\"]" \
+    --parameters "commands=[\"aws s3 cp ${S3_PREFIX}/fix-kvm-nested-hyperv-xml.sh /tmp/fix-kvm-nested-hyperv-xml.sh && aws s3 cp ${S3_PREFIX}/ensure-lab-dnsmasq.sh /tmp/ensure-lab-dnsmasq.sh && aws s3 cp ${S3_PREFIX}/ensure-lab-guest-dns.ps1 /tmp/ensure-lab-guest-dns.ps1 && aws s3 cp ${S3_PREFIX}/ensure-inner-guest-dns.sh /tmp/ensure-inner-guest-dns.sh && aws s3 cp ${S3_PREFIX}/enable-hyperv-nested-host.ps1 /tmp/enable-hyperv-nested-host.ps1 && aws s3 cp ${S3_PREFIX}/prepare-ubuntu-inner-image.sh /tmp/prepare-ubuntu-inner-image.sh && aws s3 cp ${S3_PREFIX}/provision-ubuntu-inner-vm.ps1 /tmp/provision-ubuntu-inner-vm.ps1 && aws s3 cp ${S3_PREFIX}/deploy-inner-ubuntu-on-host.sh /tmp/deploy-inner-ubuntu-on-host.sh && aws s3 cp ${S3_PREFIX}/deploy-real-l2.sh /tmp/deploy-real-l2.sh && chmod +x /tmp/*.sh && nohup /tmp/deploy-real-l2.sh ${site_id} >> /var/log/nested-virt-inner-deploy.log 2>&1 & echo started\"]" \
     --query Command.CommandId --output text)
   sleep 15
   aws ssm get-command-invocation --region "$AWS_REGION" \

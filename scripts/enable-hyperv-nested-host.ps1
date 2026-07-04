@@ -26,6 +26,8 @@ function Restore-LabIp {
   Get-NetIPAddress -InterfaceIndex $nic.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
     Where-Object { $_.IPAddress -notmatch '^169\.254\.' } | Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
   New-NetIPAddress -InterfaceIndex $nic.ifIndex -IPAddress $LabIp -PrefixLength 24 -DefaultGateway $LabGw -ErrorAction Stop | Out-Null
+  Set-DnsClientServerAddress -InterfaceIndex $nic.ifIndex -ServerAddresses @('1.1.1.1', '1.0.0.1') -ErrorAction SilentlyContinue
+  Log "lab DNS 1.1.1.1,1.0.0.1 on $($nic.Name)"
 }
 
 New-Item -ItemType Directory -Force -Path 'C:\ProgramData\nested-virt' | Out-Null

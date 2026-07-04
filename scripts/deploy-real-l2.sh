@@ -141,6 +141,10 @@ main() {
   export SITE_ID FORCE_REINSTALL=1 PS1_SRC="${SCRIPT_DIR}/provision-ubuntu-inner-vm.ps1"
   "${SCRIPT_DIR}/deploy-inner-ubuntu-on-host.sh"
 
+  log "step 6b: lab DNS on Windows + inner internet"
+  run_ps_on_guest "${SCRIPT_DIR}/ensure-lab-guest-dns.ps1" || true
+  "${SCRIPT_DIR}/ensure-inner-guest-dns.sh" "$SITE_ID" || true
+
   log "step 7: wait inner ${INNER_IP}"
   for _ in $(seq 1 36); do
     ping -c1 -W2 "$INNER_IP" >/dev/null 2>&1 && { log "PHASE=REAL_L2_OK ip=${INNER_IP}"; exit 0; }

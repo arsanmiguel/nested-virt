@@ -15,6 +15,8 @@ SEED_OUT="${SERVE_DIR}/ubuntu-inner-seed.iso"
 
 INNER_IP="10.${SITE_ID}.1.20"
 GATEWAY="10.${SITE_ID}.1.1"
+LAB_DNS_PRIMARY="1.1.1.1"
+LAB_DNS_SECONDARY="1.0.0.1"
 INNER_MAC="$(printf '52:54:00:20:%02x:20' "$((10#${SITE_ID}))")"
 
 log() { echo "$(date -Iseconds) INNER_UBUNTU $*" | tee -a "$TIMING_LOG"; }
@@ -61,8 +63,19 @@ package_update: false
 packages:
   - qemu-guest-agent
   - iputils-ping
+  - curl
+  - dnsutils
+  - openssh-server
+  write_files:
+  - path: /etc/ssh/sshd_config.d/99-nested-virt-password.conf
+    content: |
+      PasswordAuthentication yes
+      KbdInteractiveAuthentication yes
+      PubkeyAuthentication yes
+    permissions: '0644'
 runcmd:
   - systemctl enable --now qemu-guest-agent || true
+  - systemctl restart ssh || true
   - bash -lc 'IF=\$(ip -o link | awk -F": " "/${INNER_MAC}/ {print \$2}" | head -1); [ -n "\$IF" ] && ip link set "\$IF" up && ip addr replace ${INNER_IP}/24 dev "\$IF" && ip route replace default via ${GATEWAY} dev "\$IF" || true'
 EOF
   cat > "${staging}/network-config" <<EOF
@@ -79,7 +92,8 @@ ethernets:
         via: ${GATEWAY}
     nameservers:
       addresses:
-        - ${GATEWAY}
+        - ${LAB_DNS_PRIMARY}
+        - ${LAB_DNS_SECONDARY}
 EOF
   genisoimage -output "$SEED_OUT" -volid cidata -joliet -rock \
     "${staging}/meta-data" "${staging}/user-data" "${staging}/network-config" >/dev/null
@@ -105,11 +119,15 @@ network:
           via: ${GATEWAY}
       nameservers:
         addresses:
-          - ${GATEWAY}
+          - ${LAB_DNS_PRIMARY}
+          - ${LAB_DNS_SECONDARY}
 EOF
   virt-customize -a "$VHDX_OUT" \
     --upload "${netplan}:/etc/netplan/99-nested-virt-lab.yaml" \
     --run-command 'chmod 600 /etc/netplan/99-nested-virt-lab.yaml' \
+    --run-command 'mkdir -p /etc/ssh/sshd_config.d' \
+    --run-command 'rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf' \
+    --run-command 'printf "%s\n" "PasswordAuthentication yes" "KbdInteractiveAuthentication yes" "PubkeyAuthentication yes" > /etc/ssh/sshd_config.d/99-nested-virt-password.conf' \
     --run-command 'cloud-init clean --logs --seed 2>/dev/null || true'
   rm -f "$netplan"
   log "virt-customize netplan ip=${INNER_IP} mac=${INNER_MAC}"

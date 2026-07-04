@@ -116,6 +116,22 @@ if [[ "$LAYER" == "all" || "$LAYER" == "l2" ]]; then
   ssm_ping "$SITE_1_INSTANCE_ID" "10.0.1.20" "L2-inner-cross-reverse" || FAIL=1
 fi
 
+if [[ "$LAYER" == "all" || "$LAYER" == "internet" ]]; then
+  BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET:-nested-virt-bootstrap-${AWS_ACCOUNT_ID}}"
+  S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
+  for spec in "0:${SITE_0_INSTANCE_ID}" "1:${SITE_1_INSTANCE_ID}"; do
+    site="${spec%%:*}"
+    iid="${spec#*:}"
+    echo "--- INTERNET proof site ${site} (${iid}) ---"
+    if ! ssm_run "$iid" "aws s3 cp ${S3_PREFIX}/internet-proof-on-host.sh /tmp/internet-proof-on-host.sh --region ${AWS_REGION} 2>/dev/null; aws s3 cp ${S3_PREFIX}/ensure-inner-guest-dns.sh /tmp/ensure-inner-guest-dns.sh --region ${AWS_REGION} 2>/dev/null; aws s3 cp ${S3_PREFIX}/ensure-lab-guest-dns.ps1 /tmp/ensure-lab-guest-dns.ps1 --region ${AWS_REGION} 2>/dev/null; chmod +x /tmp/internet-proof-on-host.sh /tmp/ensure-inner-guest-dns.sh 2>/dev/null; /tmp/internet-proof-on-host.sh ${site}"; then
+      echo "PHASE=INTERNET_FAIL site=${site}"
+      FAIL=1
+    else
+      echo "PHASE=INTERNET_OK site=${site}"
+    fi
+  done
+fi
+
 if (( FAIL )); then
   echo "Routing proof FAILED."
   exit 1

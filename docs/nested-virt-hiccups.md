@@ -125,6 +125,16 @@ See `docs/SECURITY-EXCEPTIONS.md`.
 
 ---
 
+## 6d. Guest HTTPS works but inner cannot curl (post-CSE DNS)
+
+**Symptom:** Metal and cross-site L2 ping OK; Windows guest ping to `1.1.1.1` OK; `Invoke-WebRequest https://…` fails; inner `curl` fails.
+
+**Cause:** Post-CSE, lab dnsmasq is `port=0` (no DNS on `10.{site}.1.1`). Windows `vEthernet (NestedVirt-Lab)` uses **static IP** (no DHCP option 6). Inner netplan pointed nameservers at the metal gateway.
+
+**Fix:** `ensure-lab-guest-dns.ps1` (Windows → `1.1.1.1`/`1.0.0.1`), inner netplan/seed → public DNS in `prepare-ubuntu-inner-image.sh`, `./bin/invoke-routing-proof.sh --layer internet`. Existing inners without SSH password: `./bin/refresh-inner-internet.sh` (re-pull VHDX with baked netplan).
+
+---
+
 ## 6b. L2 WinRM timeout on VHDX download (post-CSE pipeline)
 
 **Symptom:** `deploy-real-l2.sh` reaches step 6; log shows `winrm provision guest=10.x.1.10` then `ReadTimeout` after 7200s. Hyper-V / `vmms` are fine.

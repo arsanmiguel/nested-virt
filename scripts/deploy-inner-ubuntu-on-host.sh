@@ -205,6 +205,9 @@ log "wait for inner ping ${INNER_IP}"
 for _ in $(seq 1 60); do
   if ping -c1 -W2 "$INNER_IP" >/dev/null 2>&1; then
     log "PHASE=INNER_UBUNTU_OK ip=${INNER_IP}"
+    if [[ -x "${SCRIPT_DIR}/ensure-inner-guest-dns.sh" ]]; then
+      "${SCRIPT_DIR}/ensure-inner-guest-dns.sh" "$SITE_ID" || log "WARN inner internet patch incomplete"
+    fi
     exit 0
   fi
   sleep 10

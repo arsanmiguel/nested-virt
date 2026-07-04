@@ -216,7 +216,7 @@ Usually around **2:18 AM on a Sunday.**
 
 These failures appeared **after** Cloud Security Engineering scans and Epoxy isolation — not because nested virt stopped working in principle, but because hardening changed behavior the pipeline assumed.
 
-**Single entry point:** `./bin/go.sh --fresh` (teardown → deploy → CSE verify → L0/L1/L2 proofs). Idempotent resume: `./bin/go.sh`.
+**Single entry point:** `./bin/go.sh --fresh` (teardown → deploy → CSE verify → L0/L1/L2 proofs). Idempotent resume: `./bin/go.sh`. Internet: `./bin/invoke-routing-proof.sh --layer internet`.
 
 | What broke | Root cause | Fix (in repo) |
 |------------|------------|---------------|
@@ -227,6 +227,7 @@ These failures appeared **after** Cloud Security Engineering scans and Epoxy iso
 | **DHCP DNS useless post-CSE** | `port=0` means no DNS on gateway, but DHCP option 6 still pointed at gateway | DHCP option 6 → `1.1.1.1,1.0.0.1` in `ensure-lab-dnsmasq.sh` |
 | **Bootstrap dies on site 1** | NVMe order varies: `/dev/nvme1n1` can be **root** (200G), data volume is **2TB** `/dev/nvme0n1` | `bootstrap.sh` `init_vm_disk`: skip root mount, pick block device ≥500GB |
 | **Bootstrap silent exit** | `mount` on already-busy path with `set -e` | Tolerate existing mount; log and continue |
+| **Guest HTTPS fails** | Windows `vEthernet (NestedVirt-Lab)` is static IP with no DNS; inner netplan pointed at gateway (`port=0` dnsmasq) | `ensure-lab-guest-dns.ps1`, inner netplan → `1.1.1.1`/`1.0.0.1`; `./bin/invoke-routing-proof.sh --layer internet` |
 
 **What did *not* need changing for CSE:** CFN GRE/transport layout, Hyper-V nested XML (`fix-kvm-nested-hyperv-xml.sh`), peer routing, or the proof matrix. SG `0.0.0.0/0` remains a documented lab exception (`docs/SECURITY-EXCEPTIONS.md`).
 

@@ -34,9 +34,42 @@ function Ensure-VmmsRunning {
   Log "vmms RUNNING"
 }
 
+function Ensure-LabDns {
+  param([int]$Site)
+  $labIp = "10.$Site.1.10"
+  $dns = @('1.1.1.1', '1.0.0.1')
+  $dnsSet = $false
+  Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | ForEach-Object {
+    if ($_.Name -like '*NestedVirt-Lab*' -or $_.Name -like '*NestedVirt*Lab*') {
+      $cur = @(Get-DnsClientServerAddress -InterfaceIndex $_.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty ServerAddresses)
+      if (-not ($cur -contains '1.1.1.1')) {
+        Log "set DNS on $($_.Name) -> $($dns -join ',')"
+        Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses $dns
+      } else {
+        Log "DNS ok on $($_.Name)"
+      }
+      $dnsSet = $true
+    }
+  }
+  if (-not $dnsSet) {
+    Get-NetAdapter | Where-Object {
+      $_.Status -eq 'Up' -and $_.Name -notmatch 'vEthernet' -and $_.InterfaceDescription -notmatch 'Hyper-V'
+    } | ForEach-Object {
+      $have = Get-NetIPAddress -InterfaceIndex $_.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -eq $labIp }
+      if ($have) {
+        Log "set DNS on uplink $($_.Name) -> $($dns -join ',')"
+        Set-DnsClientServerAddress -InterfaceIndex $_.ifIndex -ServerAddresses $dns
+      }
+    }
+  }
+}
+
 function Ensure-ExternalSwitch {
   if (Get-VMSwitch -Name $SwitchName -ErrorAction SilentlyContinue) {
     Log "vSwitch $SwitchName exists"
+    Ensure-LabDns -Site $SiteId
     return
   }
   $nic = Get-NetAdapter | Where-Object {
@@ -65,6 +98,7 @@ function Ensure-ExternalSwitch {
       New-NetIPAddress -InterfaceIndex $vEth.ifIndex -IPAddress $ipCfg.IPAddress -PrefixLength $ipCfg.PrefixLength -DefaultGateway $gw -ErrorAction SilentlyContinue | Out-Null
     }
   }
+  Ensure-LabDns -Site $SiteId
 }
 
 New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
@@ -88,6 +122,12 @@ if (Get-VM -Name $VmName -ErrorAction SilentlyContinue) {
     Remove-VM -Name $VmName -Force
     Start-Sleep -Seconds 3
     foreach ($artifact in @($vhdx, $vhdxPart, $seed, $legacyPart)) {
+      if ($SkipDownload -and ($artifact -eq $vhdx -or $artifact -eq $vhdxPart)) {
+        if ((Test-Path $vhdx) -and (Get-Item $vhdx).Length -gt 1GB) {
+          Log "keep fresh vhdx for SkipDownload size=$((Get-Item $vhdx).Length)"
+          continue
+        }
+      }
       if ($artifact -and (Test-Path $artifact)) {
         Log "force remove stale artifact $artifact"
         Remove-Item $artifact -Force -ErrorAction SilentlyContinue
@@ -96,6 +136,7 @@ if (Get-VM -Name $VmName -ErrorAction SilentlyContinue) {
   } else {
     Log "vm $VmName already exists - start if stopped"
     if ((Get-VM -Name $VmName).State -ne "Running") { Start-VM -Name $VmName }
+    Ensure-LabDns -Site $SiteId
     Log "PHASE=INNER_UBUNTU_OK vm=$VmName ip=$InnerIp existing=1"
     exit 0
   }
@@ -169,4 +210,5 @@ $hd = Get-VMHardDiskDrive -VMName $VmName
 Set-VMFirmware -VMName $VmName -BootOrder $hd
 Set-VM -Name $VmName -Notes "nested-virt L2 ubuntu site $SiteId $InnerIp (Hyper-V child)"
 Start-VM -Name $VmName
+Ensure-LabDns -Site $SiteId
 Log "PHASE=INNER_UBUNTU_STARTED vm=$VmName ip=$InnerIp mac=$VmMac layer=hyperv"
