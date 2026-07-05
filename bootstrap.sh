@@ -222,7 +222,7 @@ install_features() {
     apt-get install -y \
       qemu-kvm libvirt-daemon-system libvirt-clients virtinst \
       bridge-utils iptables-persistent chrony curl \
-      libguestfs-tools virt-top python3
+      libguestfs-tools virt-top python3 sshpass openssh-client
     systemctl enable --now libvirtd chrony
     if ! command -v aws >/dev/null 2>&1; then
       apt-get install -y awscli || true

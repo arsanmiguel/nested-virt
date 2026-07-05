@@ -32,23 +32,8 @@ BOOTSTRAP_BUCKET="nested-virt-bootstrap-${AWS_ACCOUNT_ID}"
 echo "BOOTSTRAP_BUCKET=${BOOTSTRAP_BUCKET}" > "${SCRIPT_DIR}/.bootstrap-bucket.env"
 export BOOTSTRAP_BUCKET
 
-echo "=== Upload bootstrap.sh to S3 ==="
-if ! aws s3api head-bucket --bucket "${BOOTSTRAP_BUCKET}" >/dev/null 2>&1; then
-  if [[ "${AWS_REGION}" != "us-east-1" ]]; then
-    aws s3api create-bucket --bucket "${BOOTSTRAP_BUCKET}" --region "${AWS_REGION}" \
-      --create-bucket-configuration "LocationConstraint=${AWS_REGION}" 2>/dev/null || true
-  else
-    aws s3api create-bucket --bucket "${BOOTSTRAP_BUCKET}" --region "${AWS_REGION}" || true
-  fi
-fi
-aws s3 cp "${ROOT}/bootstrap.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh" --region "${AWS_REGION}"
-aws s3 cp "${ROOT}/scripts/ensure-lab-dnsmasq.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/ensure-lab-dnsmasq.sh" --region "${AWS_REGION}"
-aws s3 cp "${ROOT}/scripts/ensure-lab-vnc.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/ensure-lab-vnc.sh" --region "${AWS_REGION}"
-aws s3 cp "${ROOT}/scripts/ensure-lab-image-cache.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/ensure-lab-image-cache.sh" --region "${AWS_REGION}"
-aws s3 cp "${ROOT}/scripts/apply-peer-routes.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/apply-peer-routes.sh" --region "${AWS_REGION}"
-aws s3 cp "${ROOT}/scripts/fix-transport-routing.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/fix-transport-routing.sh" --region "${AWS_REGION}"
-aws s3 cp "${ROOT}/scripts/setup-gre-tunnel.sh" "s3://${BOOTSTRAP_BUCKET}/nested-virt/setup-gre-tunnel.sh" --region "${AWS_REGION}"
-echo "Uploaded s3://${BOOTSTRAP_BUCKET}/nested-virt/bootstrap.sh"
+echo "=== Upload lab scripts to S3 ==="
+"${ROOT}/bin/upload-lab-scripts.sh"
 
 python3 "${SCRIPT_DIR}/package-template.py"
 

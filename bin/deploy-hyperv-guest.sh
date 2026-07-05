@@ -23,13 +23,8 @@ BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET:-nested-virt-bootstrap-${AWS_ACCOUNT_ID}}"
 WINDOWS_ISO_S3_URI="${WINDOWS_ISO_S3_URI:-}"
 S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
 
-echo "=== Upload Hyper-V guest scripts ==="
-aws s3 cp "${ROOT}/scripts/provision-windows-guest.sh" "${S3_PREFIX}/provision-windows-guest.sh" --region "$AWS_REGION"
-aws s3 cp "${ROOT}/scripts/ensure-lab-dnsmasq.sh" "${S3_PREFIX}/ensure-lab-dnsmasq.sh" --region "$AWS_REGION"
-aws s3 cp "${ROOT}/scripts/ensure-lab-vnc.sh" "${S3_PREFIX}/ensure-lab-vnc.sh" --region "$AWS_REGION"
-aws s3 cp "${ROOT}/scripts/ensure-lab-image-cache.sh" "${S3_PREFIX}/ensure-lab-image-cache.sh" --region "$AWS_REGION"
-aws s3 cp "${ROOT}/scripts/autounattend.xml" "${S3_PREFIX}/autounattend.xml" --region "$AWS_REGION"
-aws s3 cp "${ROOT}/scripts/enable-hyperv.ps1" "${S3_PREFIX}/enable-hyperv.ps1" --region "$AWS_REGION"
+echo "=== Upload lab scripts ==="
+"${BIN}/upload-lab-scripts.sh"
 
 run_on_instance() {
   local iid="$1" label="$2"

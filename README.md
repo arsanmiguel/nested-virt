@@ -228,10 +228,13 @@ These failures appeared **after** Cloud Security Engineering scans and Epoxy iso
 | **Bootstrap dies on site 1** | NVMe order varies: `/dev/nvme1n1` can be **root** (200G), data volume is **2TB** `/dev/nvme0n1` | `bootstrap.sh` `init_vm_disk`: skip root mount, pick block device ≥500GB |
 | **Bootstrap silent exit** | `mount` on already-busy path with `set -e` | Tolerate existing mount; log and continue |
 | **Guest HTTPS fails** | Windows `vEthernet (NestedVirt-Lab)` is static IP with no DNS; inner netplan pointed at gateway (`port=0` dnsmasq) | `ensure-lab-guest-dns.ps1`, inner netplan → `1.1.1.1`/`1.0.0.1`; `./bin/invoke-routing-proof.sh --layer internet` |
+| **Inner SSH / internet proof** | Ubuntu cloud image disables password auth (`60-cloudimg-settings.conf`); stale `known_hosts` after VHDX rebuild; hardcoded `ubuntu`/`ubuntu` | `prepare-ubuntu-inner-image.sh` removes conf via virt-customize; generated `${STATE_DIR}/inner-ubuntu-ssh-password`; SSH uses `UserKnownHostsFile=/dev/null`; `./bin/refresh-inner-internet.sh --wait` rebuilds live VMs |
 
 **What did *not* need changing for CSE:** CFN GRE/transport layout, Hyper-V nested XML (`fix-kvm-nested-hyperv-xml.sh`), peer routing, or the proof matrix. SG `0.0.0.0/0` remains a documented lab exception (`docs/SECURITY-EXCEPTIONS.md`).
 
-**Validated 2026-07-04:** Full `./bin/go.sh --fresh` on new stacks `nested-virt-s0-01` + `nested-virt-s1-01` → **ALL GREEN** (`--layer all`).
+**Validated 2026-07-04:** Full `./bin/go.sh --fresh` on stacks `nested-virt-s0-01` + `nested-virt-s1-01` → **ALL GREEN** (`--layer all`) on instance set `i-0279…` / `i-0ea1…`.
+
+**2026-07-05 redeploy:** New instances (`i-0ec9…` / `i-0177…`); routing green; `--layer internet` still red until inner refresh with generated credentials completes. See `docs/ITERATION-LOG.md`.
 
 **ISO cache:** `Win2022.iso` lives in S3; hosts cache on the 2TB data EBS. Seed `virtio-win.iso` in the bootstrap bucket once to avoid upstream wget on every fresh data volume.
 

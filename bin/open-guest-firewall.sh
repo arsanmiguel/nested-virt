@@ -11,8 +11,7 @@ source "${ROOT}/sites.env"
 BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET:-nested-virt-bootstrap-${AWS_ACCOUNT_ID}}"
 S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
 
-aws s3 cp "${ROOT}/scripts/open-guest-firewall.ps1" "${S3_PREFIX}/open-guest-firewall.ps1" --region "$AWS_REGION"
-aws s3 cp "${ROOT}/scripts/apply-guest-firewall.sh" "${S3_PREFIX}/apply-guest-firewall.sh" --region "$AWS_REGION"
+"${BIN}/upload-lab-scripts.sh"
 
 apply_on() {
   local iid="$1" guest_ip="$2" label="$3"

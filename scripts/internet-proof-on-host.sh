@@ -7,6 +7,8 @@ STATE_DIR="${STATE_DIR:-/var/lib/nested-virt}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 GUEST_IP="10.${SITE_ID}.1.10"
 INNER_IP="10.${SITE_ID}.1.20"
+INNER_PASS_FILE="${INNER_PASS_FILE:-${STATE_DIR:-/var/lib/nested-virt}/inner-ubuntu-ssh-password}"
+INNER_KEY="${INNER_KEY:-${STATE_DIR:-/var/lib/nested-virt}/inner-ubuntu-ssh-key}"
 PASS_FILE="${PASS_FILE:-${STATE_DIR}/win-guest-admin-password}"
 
 fail=0
@@ -53,8 +55,26 @@ fi
 
 echo "=== site ${SITE_ID} L2 inner curl ==="
 inner_ok=0
+if [[ -f "$INNER_KEY" ]]; then
+  :
+elif [[ -n "${INNER_SSH_PASS:-}" ]]; then
+  INNER_PASS="$INNER_SSH_PASS"
+elif [[ -f "$INNER_PASS_FILE" ]]; then
+  INNER_PASS=$(tr -d '[:space:]' < "$INNER_PASS_FILE")
+else
+  bad l2-inner no_credentials
+fi
+if [[ "${fail}" -eq 0 ]]; then
 for _ in $(seq 1 6); do
-  if sshpass -p ubuntu ssh -o StrictHostKeyChecking=no \
+  if [[ -f "$INNER_KEY" ]]; then
+    if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+      -i "$INNER_KEY" -o PreferredAuthentications=publickey -o PasswordAuthentication=no \
+      -o ConnectTimeout=12 "ubuntu@${INNER_IP}" \
+      'curl -sf --connect-timeout 12 https://checkip.amazonaws.com && echo INNER_OK' 2>/dev/null | grep -q INNER_OK; then
+      inner_ok=1
+      break
+    fi
+  elif sshpass -p "${INNER_PASS}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
     -o PreferredAuthentications=password -o PubkeyAuthentication=no \
     -o ConnectTimeout=12 "ubuntu@${INNER_IP}" \
     'curl -sf --connect-timeout 12 https://checkip.amazonaws.com && echo INNER_OK' 2>/dev/null | grep -q INNER_OK; then
@@ -63,6 +83,7 @@ for _ in $(seq 1 6); do
   fi
   sleep 10
 done
+fi
 if [[ "$inner_ok" -eq 1 ]]; then
   ok l2-inner
 else

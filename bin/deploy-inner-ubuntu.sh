@@ -18,22 +18,8 @@ wait_ssm_online "$SITE_1_INSTANCE_ID"
 BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET:-nested-virt-bootstrap-${AWS_ACCOUNT_ID}}"
 S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
 
-SCRIPTS=(
-  ensure-lab-dnsmasq.sh
-  ensure-lab-guest-dns.ps1
-  ensure-inner-guest-dns.sh
-  fix-kvm-nested-hyperv-xml.sh
-  enable-hyperv-nested-host.ps1
-  prepare-ubuntu-inner-image.sh
-  provision-ubuntu-inner-vm.ps1
-  deploy-inner-ubuntu-on-host.sh
-  deploy-real-l2.sh
-)
-
-echo "=== Upload Hyper-V L2 scripts ==="
-for s in "${SCRIPTS[@]}"; do
-  aws s3 cp "${ROOT}/scripts/${s}" "${S3_PREFIX}/${s}" --region "$AWS_REGION"
-done
+echo "=== Upload lab scripts ==="
+"${BIN}/upload-lab-scripts.sh"
 
 run_on_instance() {
   local iid="$1" site_id="$2" label="$3"

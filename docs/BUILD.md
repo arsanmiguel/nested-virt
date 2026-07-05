@@ -6,6 +6,18 @@ For a quick launch guide see [README.md](../README.md). For triage when somethin
 
 ---
 
+## Quick start
+
+1. Copy `config.env.example` → `config.env` and `config.local.env.example` → `config.local.env` (set `KEY_NAME` to your EC2 key pair).
+2. Ensure AWS credentials for the account in `config.env` (`aws sts get-caller-identity`).
+3. **Full deploy:** `./bin/go.sh --fresh` — teardown, both CFN stacks, bootstrap, guests, L2, CSE verify, all proofs (~3–4 hours including L2 VHDX per site).
+4. **Resume / idempotent:** `./bin/go.sh` — skips completed phases, refreshes inner VHDX if internet proof fails.
+5. **Proofs only:** `./bin/invoke-routing-proof.sh --layer all` (includes `--layer internet`).
+
+All host scripts are uploaded via `./bin/upload-lab-scripts.sh` (called automatically by `go.sh` and CFN deploy).
+
+---
+
 ## What this is
 
 A **provable** nested stack across two availability zones:

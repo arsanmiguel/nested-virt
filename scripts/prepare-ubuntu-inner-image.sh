@@ -18,8 +18,30 @@ GATEWAY="10.${SITE_ID}.1.1"
 LAB_DNS_PRIMARY="1.1.1.1"
 LAB_DNS_SECONDARY="1.0.0.1"
 INNER_MAC="$(printf '52:54:00:20:%02x:20' "$((10#${SITE_ID}))")"
+INNER_PASS_FILE="${INNER_PASS_FILE:-${STATE_DIR}/inner-ubuntu-ssh-password}"
+INNER_KEY="${INNER_KEY:-${STATE_DIR}/inner-ubuntu-ssh-key}"
+INNER_PUB="${INNER_PUB:-${INNER_KEY}.pub}"
 
 log() { echo "$(date -Iseconds) INNER_UBUNTU $*" | tee -a "$TIMING_LOG"; }
+
+generate_inner_ssh_password() {
+  local pw
+  pw=$(openssl rand -base64 18 | tr -d '/+=' | head -c 16)
+  umask 077
+  printf '%s' "$pw" > "$INNER_PASS_FILE"
+  chmod 600 "$INNER_PASS_FILE"
+  INNER_LAB_PASS="$pw"
+  log "generated inner ssh password file ${INNER_PASS_FILE}"
+}
+
+ensure_inner_ssh_key() {
+  if [[ ! -f "$INNER_KEY" ]]; then
+    umask 077
+    ssh-keygen -t ed25519 -N "" -f "$INNER_KEY" >/dev/null
+    chmod 600 "$INNER_KEY"
+    log "generated inner ssh key ${INNER_KEY}"
+  fi
+}
 
 ensure_tools() {
   export DEBIAN_FRONTEND=noninteractive
@@ -52,12 +74,15 @@ EOF
 #cloud-config
 users:
   - name: ubuntu
+    gecos: Ubuntu
+    groups: adm,cdrom,dip,lxd,sudo
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
     lock_passwd: false
-    plain_text_passwd: ubuntu
 ssh_pwauth: true
 chpasswd:
+  list: |
+    ubuntu:${INNER_LAB_PASS}
   expire: false
 package_update: false
 packages:
@@ -66,7 +91,7 @@ packages:
   - curl
   - dnsutils
   - openssh-server
-  write_files:
+write_files:
   - path: /etc/ssh/sshd_config.d/99-nested-virt-password.conf
     content: |
       PasswordAuthentication yes
@@ -74,6 +99,7 @@ packages:
       PubkeyAuthentication yes
     permissions: '0644'
 runcmd:
+  - rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
   - systemctl enable --now qemu-guest-agent || true
   - systemctl restart ssh || true
   - bash -lc 'IF=\$(ip -o link | awk -F": " "/${INNER_MAC}/ {print \$2}" | head -1); [ -n "\$IF" ] && ip link set "\$IF" up && ip addr replace ${INNER_IP}/24 dev "\$IF" && ip route replace default via ${GATEWAY} dev "\$IF" || true'
@@ -102,8 +128,11 @@ EOF
 }
 
 inject_netplan() {
-  local netplan
+  local netplan staging pw_line auth_keys
   netplan="$(mktemp)"
+  staging="$(mktemp -d)"
+  auth_keys="${staging}/authorized_keys"
+  cp "$INNER_PUB" "$auth_keys"
   cat > "$netplan" <<EOF
 network:
   version: 2
@@ -122,15 +151,33 @@ network:
           - ${LAB_DNS_PRIMARY}
           - ${LAB_DNS_SECONDARY}
 EOF
+  # Ubuntu cloud images create the ubuntu user on first boot via cloud-init; bake
+  # the account + password offline so SSH works even if nocloud seed is slow/missed.
+  printf 'ubuntu:%s\n' "$(openssl passwd -6 "$INNER_LAB_PASS")" > "${staging}/chpasswd_line"
   virt-customize -a "$VHDX_OUT" \
     --upload "${netplan}:/etc/netplan/99-nested-virt-lab.yaml" \
+    --upload "${staging}/chpasswd_line:/tmp/nested-virt-chpasswd" \
+    --upload "${auth_keys}:/tmp/nested-virt-authorized-keys" \
     --run-command 'chmod 600 /etc/netplan/99-nested-virt-lab.yaml' \
-    --run-command 'mkdir -p /etc/ssh/sshd_config.d' \
-    --run-command 'rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf' \
+    --run-command 'id ubuntu >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo,adm ubuntu' \
+    --run-command 'install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu/.ssh' \
+    --run-command 'install -m 600 -o ubuntu -g ubuntu /tmp/nested-virt-authorized-keys /home/ubuntu/.ssh/authorized_keys' \
+    --run-command 'install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu' \
+    --run-command 'chpasswd -e < /tmp/nested-virt-chpasswd' \
+    --run-command 'passwd -u ubuntu 2>/dev/null || true' \
+    --run-command 'mkdir -p /etc/ssh/sshd_config.d /etc/sudoers.d' \
+    --run-command 'rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf /tmp/nested-virt-chpasswd /tmp/nested-virt-authorized-keys' \
     --run-command 'printf "%s\n" "PasswordAuthentication yes" "KbdInteractiveAuthentication yes" "PubkeyAuthentication yes" > /etc/ssh/sshd_config.d/99-nested-virt-password.conf' \
+    --run-command 'echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-nested-virt-ubuntu && chmod 440 /etc/sudoers.d/99-nested-virt-ubuntu' \
+    --run-command 'touch /etc/cloud/cloud-init.disabled' \
+    --install openssh-server \
+    --run-command 'ssh-keygen -A' \
+    --run-command 'systemctl enable ssh' \
+    --install curl \
     --run-command 'cloud-init clean --logs --seed 2>/dev/null || true'
   rm -f "$netplan"
-  log "virt-customize netplan ip=${INNER_IP} mac=${INNER_MAC}"
+  rm -rf "$staging"
+  log "virt-customize netplan+credentials ip=${INNER_IP} mac=${INNER_MAC}"
 }
 
 update_lab_dhcp() {
@@ -151,6 +198,16 @@ EOF
 main() {
   ensure_tools
   mkdir -p "$SERVE_DIR"
+  if [[ -n "${INNER_SSH_PASS:-}" ]]; then
+    INNER_LAB_PASS="$INNER_SSH_PASS"
+    umask 077
+    printf '%s' "$INNER_LAB_PASS" > "$INNER_PASS_FILE"
+    chmod 600 "$INNER_PASS_FILE"
+    log "using INNER_SSH_PASS override → ${INNER_PASS_FILE}"
+  else
+    generate_inner_ssh_password
+  fi
+  ensure_inner_ssh_key
   fetch_and_convert_base
   cp -f "$BASE_VHDX" "$VHDX_OUT"
   inject_netplan
@@ -158,6 +215,8 @@ main() {
   build_seed_iso
   update_lab_dhcp
   log "ready serve_dir=${SERVE_DIR} vhdx=${VHDX_OUT} seed=${SEED_OUT}"
+  sha256sum "$VHDX_OUT" | awk '{print $1}' > "${SERVE_DIR}/ubuntu-inner.vhdx.sha256"
+  log "vhdx sha256=$(cat "${SERVE_DIR}/ubuntu-inner.vhdx.sha256")"
 }
 
 main "$@"

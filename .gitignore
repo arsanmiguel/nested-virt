@@ -3,6 +3,9 @@ config.env
 .last-stack*.env
 sites.env
 .domain-join-password.env
+inner-ubuntu-ssh-password*
+inner-ubuntu-ssh-key*
+win-guest-admin-password
 cloudformation/packaged-template.yaml
 cloudformation/.bootstrap-bucket.env
 cloudformation/parameters.json

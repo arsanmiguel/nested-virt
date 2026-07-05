@@ -11,9 +11,36 @@ INNER_IP="10.${SITE_ID}.1.20"
 GATEWAY="10.${SITE_ID}.1.1"
 INNER_MAC="$(printf '52:54:00:20:%02x:20' "$((10#${SITE_ID}))")"
 INNER_USER="${INNER_SSH_USER:-ubuntu}"
-INNER_PASS="${INNER_SSH_PASS:-ubuntu}"
+INNER_PASS_FILE="${INNER_PASS_FILE:-${STATE_DIR}/inner-ubuntu-ssh-password}"
+INNER_KEY="${INNER_KEY:-${STATE_DIR}/inner-ubuntu-ssh-key}"
+SSH_INNER_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 log() { echo "$(date -Iseconds) INNER_DNS $*" | tee -a "$TIMING_LOG"; }
+
+load_inner_pass() {
+  if [[ -n "${INNER_SSH_PASS:-}" ]]; then
+    INNER_PASS="$INNER_SSH_PASS"
+  elif [[ -f "$INNER_PASS_FILE" ]]; then
+    INNER_PASS=$(tr -d '[:space:]' < "$INNER_PASS_FILE")
+  elif [[ -f "$INNER_KEY" ]]; then
+    INNER_PASS=""
+  else
+    log "ERROR missing ${INNER_PASS_FILE} — run deploy-inner-ubuntu-on-host.sh or prepare-ubuntu-inner-image.sh"
+    exit 1
+  fi
+}
+
+inner_ssh() {
+  if [[ -f "$INNER_KEY" ]]; then
+    ssh $SSH_INNER_OPTS -i "$INNER_KEY" -o PreferredAuthentications=publickey \
+      -o PasswordAuthentication=no \
+      "${INNER_USER}@${INNER_IP}" "$@"
+  else
+    sshpass -p "$INNER_PASS" ssh $SSH_INNER_OPTS \
+      -o PreferredAuthentications=password -o PubkeyAuthentication=no \
+      "${INNER_USER}@${INNER_IP}" "$@"
+  fi
+}
 
 apply_win_dns() {
   local guest_ip="10.${SITE_ID}.1.10"
@@ -52,17 +79,13 @@ PY
 
 inner_internet_ok() {
   local out
-  out=$(sshpass -p "$INNER_PASS" ssh -o StrictHostKeyChecking=no \
-    -o PreferredAuthentications=password -o PubkeyAuthentication=no \
-    -o ConnectTimeout=10 "${INNER_USER}@${INNER_IP}" \
+  out=$(inner_ssh -o ConnectTimeout=10 \
     'curl -sf --connect-timeout 10 https://checkip.amazonaws.com && echo INNER_INTERNET_OK' 2>/dev/null || true)
   echo "$out" | grep -q INNER_INTERNET_OK
 }
 
 patch_inner_netplan() {
-  sshpass -p "$INNER_PASS" ssh -o StrictHostKeyChecking=no \
-    -o PreferredAuthentications=password -o PubkeyAuthentication=no \
-    -o ConnectTimeout=15 "${INNER_USER}@${INNER_IP}" "sudo bash -s" <<EOF
+  inner_ssh -o ConnectTimeout=15 "sudo bash -s" <<EOF
 set -e
 cat > /etc/netplan/99-nested-virt-lab.yaml <<NETPLAN
 network:
@@ -88,17 +111,25 @@ EOF
 }
 
 refresh_inner_vhdx() {
-  local prep deploy ps1
-  prep="${SCRIPT_DIR}/prepare-ubuntu-inner-image.sh"
+  local deploy ps1
   deploy="${SCRIPT_DIR}/deploy-inner-ubuntu-on-host.sh"
   ps1="${SCRIPT_DIR}/provision-ubuntu-inner-vm.ps1"
-  [[ -f /tmp/prepare-ubuntu-inner-image.sh ]] && prep="/tmp/prepare-ubuntu-inner-image.sh"
   [[ -f /tmp/deploy-inner-ubuntu-on-host.sh ]] && deploy="/tmp/deploy-inner-ubuntu-on-host.sh"
   [[ -f /tmp/provision-ubuntu-inner-vm.ps1 ]] && ps1="/tmp/provision-ubuntu-inner-vm.ps1"
   log "refresh inner VHDX from metal (SSH patch unavailable)"
-  "$prep" "$SITE_ID" || return 1
-  export SITE_ID FORCE_REINSTALL=1 PS1_SRC="$ps1"
-  FORCE_REINSTALL=1 "$deploy"
+  pkill -9 -f deploy-inner-ubuntu-on-host.sh 2>/dev/null || true
+  pkill -9 -f deploy-real-l2.sh 2>/dev/null || true
+  rm -f "${STATE_DIR}/inner-deploy.lock"
+  sleep 2
+  export SITE_ID FORCE_REINSTALL=1 FORCE_VHDX_PULL=1 SKIP_INNER_DNS_ENSURE=1 PS1_SRC="$ps1"
+  FORCE_REINSTALL=1 FORCE_VHDX_PULL=1 SKIP_INNER_DNS_ENSURE=1 "$deploy" || return 1
+  load_inner_pass
+  local attempt
+  for attempt in $(seq 1 24); do
+    inner_internet_ok && return 0
+    sleep 10
+  done
+  return 1
 }
 
 main() {
@@ -107,6 +138,17 @@ main() {
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get install -y sshpass openssh-client curl >/dev/null 2>&1 || true
+
+  if [[ "${REFRESH_INNER_VHDX:-0}" == "1" ]] && [[ -z "${INNER_SSH_PASS:-}" ]] && [[ ! -f "$INNER_PASS_FILE" ]]; then
+    log "no inner password file — full VHDX refresh"
+    refresh_inner_vhdx && {
+      log "PHASE=INNER_INTERNET_OK ip=${INNER_IP} (vhdx refresh)"
+      exit 0
+    }
+    exit 1
+  fi
+
+  load_inner_pass
 
   if ! ping -c1 -W3 "$INNER_IP" >/dev/null 2>&1; then
     if [[ "${REFRESH_INNER_VHDX:-0}" == "1" ]]; then

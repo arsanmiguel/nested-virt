@@ -14,16 +14,7 @@ source "${BIN}/wait-deps.sh"
 BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET:-nested-virt-bootstrap-${AWS_ACCOUNT_ID}}"
 S3_PREFIX="s3://${BOOTSTRAP_BUCKET}/nested-virt"
 
-SCRIPTS=(
-  ensure-lab-guest-dns.ps1
-  ensure-inner-guest-dns.sh
-  internet-proof-on-host.sh
-)
-
-echo "=== Upload internet/DNS scripts ==="
-for s in "${SCRIPTS[@]}"; do
-  aws s3 cp "${ROOT}/scripts/${s}" "${S3_PREFIX}/${s}" --region "$AWS_REGION"
-done
+"${BIN}/upload-lab-scripts.sh"
 
 wait_ssm_online "$SITE_0_INSTANCE_ID"
 wait_ssm_online "$SITE_1_INSTANCE_ID"

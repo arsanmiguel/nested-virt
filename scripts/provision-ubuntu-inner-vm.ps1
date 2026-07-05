@@ -7,7 +7,8 @@ param(
   [Parameter(Mandatory = $true)][string]$InnerIp,
   [Parameter(Mandatory = $true)][string]$VmMac,
   [switch]$ForceReinstall,
-  [switch]$SkipDownload
+  [switch]$SkipDownload,
+  [switch]$SkipSeed
 )
 
 $ErrorActionPreference = "Stop"
@@ -123,15 +124,16 @@ if (Get-VM -Name $VmName -ErrorAction SilentlyContinue) {
     Start-Sleep -Seconds 3
     foreach ($artifact in @($vhdx, $vhdxPart, $seed, $legacyPart)) {
       if ($SkipDownload -and ($artifact -eq $vhdx -or $artifact -eq $vhdxPart)) {
-        if ((Test-Path $vhdx) -and (Get-Item $vhdx).Length -gt 1GB) {
-          Log "keep fresh vhdx for SkipDownload size=$((Get-Item $vhdx).Length)"
-          continue
-        }
+        Log "keep staged vhdx for SkipDownload size=$((Get-Item $vhdx -ErrorAction SilentlyContinue).Length)"
+        continue
       }
       if ($artifact -and (Test-Path $artifact)) {
         Log "force remove stale artifact $artifact"
         Remove-Item $artifact -Force -ErrorAction SilentlyContinue
       }
+    }
+    if (-not $SkipDownload) {
+      Remove-Item (Join-Path $StateDir "ubuntu-inner-disk.vhdx.sha256") -Force -ErrorAction SilentlyContinue
     }
   } else {
     Log "vm $VmName already exists - start if stopped"
@@ -176,6 +178,7 @@ if (-not (Test-Path $vhdx) -or (Get-Item $vhdx).Length -lt 1GB) {
 } else {
   Log "reuse existing vhdx size=$((Get-Item $vhdx).Length)"
 }
+if (-not $SkipSeed) {
 Log "download seed iso"
 if (-not (Test-Path $seed)) {
   & curl.exe -f -L -o $seed $SeedUrl
@@ -183,17 +186,27 @@ if (-not (Test-Path $seed)) {
 } else {
   Log "reuse existing seed iso"
 }
+}
 } else {
   if (-not (Test-Path $vhdx) -or (Get-Item $vhdx).Length -lt 1GB) {
     throw "SkipDownload set but vhdx missing or too small at $vhdx"
   }
   Log "SkipDownload vhdx size=$((Get-Item $vhdx).Length)"
-  if (-not (Test-Path $seed)) {
-    Log "download seed iso (SkipDownload path)"
-    & curl.exe -f -L -o $seed $SeedUrl
-    if ($LASTEXITCODE -ne 0) { throw "seed curl download failed exit=$LASTEXITCODE" }
+  if (-not $SkipSeed) {
+    if (-not (Test-Path $seed)) {
+      Log "download seed iso (SkipDownload path)"
+      & curl.exe -f -L -o $seed $SeedUrl
+      if ($LASTEXITCODE -ne 0) { throw "seed curl download failed exit=$LASTEXITCODE" }
+    } elseif ($ForceReinstall) {
+      Log "ForceReinstall refresh seed iso"
+      Remove-Item $seed -Force -ErrorAction SilentlyContinue
+      & curl.exe -f -L -o $seed $SeedUrl
+      if ($LASTEXITCODE -ne 0) { throw "seed curl download failed exit=$LASTEXITCODE" }
+    } else {
+      Log "reuse existing seed iso"
+    }
   } else {
-    Log "reuse existing seed iso"
+    Log "SkipSeed=1 (credentials+netplan baked in VHDX)"
   }
 }
 
@@ -204,9 +217,11 @@ Set-VMProcessor -VMName $VmName -ExposeVirtualizationExtensions $false
 Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false
 Set-VMNetworkAdapter -VMName $VmName -StaticMacAddress $VmMac
 Set-VMFirmware -VMName $VmName -EnableSecureBoot Off
-Add-VMDvdDrive -VMName $VmName -Path $seed
+if (-not $SkipSeed) {
+  Add-VMDvdDrive -VMName $VmName -Path $seed
+}
 $hd = Get-VMHardDiskDrive -VMName $VmName
-# Boot from disk only; nocloud seed ISO stays attached for cloud-init (not a boot device).
+# Boot from disk; optional nocloud seed ISO when not SkipSeed.
 Set-VMFirmware -VMName $VmName -BootOrder $hd
 Set-VM -Name $VmName -Notes "nested-virt L2 ubuntu site $SiteId $InnerIp (Hyper-V child)"
 Start-VM -Name $VmName
