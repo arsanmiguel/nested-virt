@@ -11,23 +11,65 @@ VIRTIO_ISO_MIN_BYTES="${VIRTIO_ISO_MIN_BYTES:-700000000}"
 
 icache_log() { echo "$(date -Iseconds) IMAGE_CACHE $*"; }
 
-bootstrap_bucket() {
-  local account region
-  account=$(curl -sf -H "X-aws-ec2-metadata-token: $(curl -sf -X PUT \
-    http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')" \
+imds_token() {
+  curl -sf -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"
+}
+
+imds_tag() {
+  local key="$1" token
+  token="$(imds_token)"
+  curl -sf -H "X-aws-ec2-metadata-token: ${token}" \
+    "http://169.254.169.254/latest/meta-data/tags/instance/${key}" 2>/dev/null || true
+}
+
+lab_account_id() {
+  curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
     http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
-    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
-  region=$(curl -sf -H "X-aws-ec2-metadata-token: $(curl -sf -X PUT \
-    http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')" \
-    http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || true)
-  echo "nested-virt-bootstrap-${account}|${region}"
+    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true
+}
+
+lab_region() {
+  curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
+    http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || true
+}
+
+stack_bootstrap_bucket() {
+  imds_tag BootstrapBucket
+}
+
+account_bootstrap_bucket() {
+  local account
+  account="$(lab_account_id)"
+  [[ -n "$account" ]] && echo "nested-virt-bootstrap-${account}"
+}
+
+bootstrap_bucket() {
+  local stack account region
+  stack="$(stack_bootstrap_bucket)"
+  account="$(lab_account_id)"
+  region="$(lab_region)"
+  if [[ -n "$stack" ]]; then
+    echo "${stack}|${region}"
+    return 0
+  fi
+  [[ -n "$account" && -n "$region" ]] && echo "nested-virt-bootstrap-${account}|${region}"
 }
 
 default_windows_iso_s3_uri() {
-  local bucket region
-  IFS='|' read -r bucket region < <(bootstrap_bucket)
-  [[ -n "$bucket" && -n "$region" ]] || return 1
-  echo "s3://${bucket}/nested-virt/Win2022.iso|${region}"
+  local bucket region key size
+  region="$(lab_region)"
+  for bucket in "$(stack_bootstrap_bucket)" "$(account_bootstrap_bucket)"; do
+    [[ -z "$bucket" ]] && continue
+    key="nested-virt/Win2022.iso"
+    size=$(aws s3api head-object --region "$region" --bucket "$bucket" --key "$key" \
+      --query ContentLength --output text 2>/dev/null || true)
+    if [[ -n "$size" && "$size" != "None" && "$size" -ge "$WIN_ISO_MIN_BYTES" ]]; then
+      echo "s3://${bucket}/${key}|${region}"
+      return 0
+    fi
+  done
+  return 1
 }
 
 s3_object_size() {
@@ -94,13 +136,19 @@ ensure_windows_iso() {
 }
 
 ensure_virtio_iso() {
-  local uri region bucket url tmp
-  IFS='|' read -r bucket region < <(bootstrap_bucket)
-  uri="${VIRTIO_ISO_S3_URI:-s3://${bucket}/nested-virt/virtio-win.iso}"
-  region="${AWS_REGION:-$region}"
-  if ensure_s3_object_cached "virtio" "$uri" "$region" "$VIRTIO_ISO" "$VIRTIO_ISO_MIN_BYTES"; then
-    return 0
-  fi
+  local uri region bucket url tmp size
+  region="$(lab_region)"
+  for bucket in "$(stack_bootstrap_bucket)" "$(account_bootstrap_bucket)"; do
+    [[ -z "$bucket" ]] && continue
+    uri="s3://${bucket}/nested-virt/virtio-win.iso"
+    size=$(aws s3api head-object --region "$region" --bucket "$bucket" --key nested-virt/virtio-win.iso \
+      --query ContentLength --output text 2>/dev/null || true)
+    if [[ -n "$size" && "$size" != "None" ]]; then
+      if ensure_s3_object_cached "virtio" "$uri" "$region" "$VIRTIO_ISO" "$VIRTIO_ISO_MIN_BYTES"; then
+        return 0
+      fi
+    fi
+  done
   url="${VIRTIO_ISO_URL:-https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso}"
   icache_log "virtio prefetch from upstream ${url}"
   mkdir -p "$CACHE_DIR"
@@ -118,6 +166,8 @@ ensure_virtio_iso() {
   mv -f "$tmp" "$VIRTIO_ISO"
   chmod 644 "$VIRTIO_ISO" 2>/dev/null || true
   icache_log "virtio ready size=$(stat -c%s "$VIRTIO_ISO")"
+  bucket="$(stack_bootstrap_bucket)"
+  region="$(lab_region)"
   if [[ -n "$bucket" && -n "$region" ]]; then
     aws s3 cp "$VIRTIO_ISO" "s3://${bucket}/nested-virt/virtio-win.iso" --region "$region" 2>/dev/null && \
       icache_log "virtio uploaded to s3://${bucket}/nested-virt/virtio-win.iso" || true

@@ -88,6 +88,45 @@ EOF
   log "PHASE=BOOTSTRAP_TASK registered nested-virt-bootstrap.service"
 }
 
+register_lab_pipeline_service() {
+  cat > /var/lib/nested-virt/run-lab-pipeline.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+TOKEN=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+REGION=$(curl -sf -H "X-aws-ec2-metadata-token: ${TOKEN}" http://169.254.169.254/latest/meta-data/placement/region)
+ACCOUNT=$(curl -sf -H "X-aws-ec2-metadata-token: ${TOKEN}" \
+  http://169.254.169.254/latest/dynamic/instance-identity/document | sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+BUCKET=$(curl -sf -H "X-aws-ec2-metadata-token: ${TOKEN}" \
+  http://169.254.169.254/latest/meta-data/tags/instance/BootstrapBucket 2>/dev/null || true)
+[[ -z "${BUCKET}" ]] && BUCKET="nested-virt-bootstrap-${ACCOUNT}"
+PREFIX="s3://${BUCKET}/nested-virt"
+aws s3 cp "${PREFIX}/s3-lab-common.sh" /tmp/s3-lab-common.sh --region "$REGION"
+aws s3 cp "${PREFIX}/lab-site-pipeline.sh" /tmp/lab-site-pipeline.sh --region "$REGION"
+chmod +x /tmp/s3-lab-common.sh /tmp/lab-site-pipeline.sh
+exec /tmp/lab-site-pipeline.sh
+EOF
+  chmod +x /var/lib/nested-virt/run-lab-pipeline.sh
+  cat > /etc/systemd/system/nested-virt-lab-pipeline.service <<EOF
+[Unit]
+Description=Nested virt lab pipeline (guests, L2, proofs from S3)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/var/lib/nested-virt/run-lab-pipeline.sh
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable nested-virt-lab-pipeline.service
+  systemctl start nested-virt-lab-pipeline.service || true
+  log 'PHASE=BOOTSTRAP_TASK started nested-virt-lab-pipeline.service'
+}
+
 reboot_for_bootstrap() {
   local next="$1"
   log "PHASE=REBOOT scheduling next_phase=${next}"
@@ -118,6 +157,23 @@ imds_tag() {
     return 0
   fi
   return 1
+}
+
+bootstrap_bucket() {
+  local tag account
+  tag="$(imds_tag BootstrapBucket 2>/dev/null || true)"
+  if [[ -n "$tag" ]]; then
+    echo "$tag"
+    return 0
+  fi
+  account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
+    http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
+    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
+  echo "nested-virt-bootstrap-${account}"
+}
+
+lab_s3_prefix() {
+  echo "s3://$(bootstrap_bucket)/nested-virt"
 }
 
 aws_retry() {
@@ -199,13 +255,11 @@ init_vm_disk() {
   if [[ "$win_ok" -eq 1 && "$virtio_ok" -eq 1 ]]; then
     :
   elif command -v aws >/dev/null 2>&1; then
-    local region account
+    local region prefix
     region="$(imds_get placement/region 2>/dev/null || true)"
-    account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
-      http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
-      sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
-    if [[ -n "$region" && -n "$account" ]] && \
-       aws s3 cp "s3://nested-virt-bootstrap-${account}/nested-virt/ensure-lab-image-cache.sh" \
+    prefix="$(lab_s3_prefix)"
+    if [[ -n "$region" ]] && \
+       aws s3 cp "${prefix}/ensure-lab-image-cache.sh" \
          /var/lib/nested-virt/ensure-lab-image-cache.sh --region "$region" 2>/dev/null; then
       chmod +x /var/lib/nested-virt/ensure-lab-image-cache.sh
       log "PHASE=DISK prefetch lab images (background)"
@@ -255,13 +309,11 @@ harden_metal_dns_inline() {
 }
 
 harden_metal_dns_from_s3() {
-  local region account
+  local region prefix
   region="$(imds_get placement/region 2>/dev/null || true)"
-  account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
-    http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
-    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
-  [[ -n "$region" && -n "$account" ]] || return 1
-  aws s3 cp "s3://nested-virt-bootstrap-${account}/nested-virt/ensure-lab-dnsmasq.sh" \
+  prefix="$(lab_s3_prefix)"
+  [[ -n "$region" ]] || return 1
+  aws s3 cp "${prefix}/ensure-lab-dnsmasq.sh" \
     /tmp/ensure-lab-dnsmasq.sh --region "$region" 2>/dev/null || return 1
   # shellcheck source=/dev/null
   source /tmp/ensure-lab-dnsmasq.sh
@@ -471,11 +523,8 @@ configure_peer_routes() {
   fi
   region=$(imds_get placement/region 2>/dev/null || curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
     http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || true)
-  account=$(curl -sf -H "X-aws-ec2-metadata-token: $(imds_token)" \
-    http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null | \
-    sed -n 's/.*"accountId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
-  if [[ -n "$region" && -n "$account" ]]; then
-    aws s3 cp "s3://nested-virt-bootstrap-${account}/nested-virt/setup-gre-tunnel.sh" \
+  if [[ -n "$region" ]]; then
+    aws s3 cp "$(lab_s3_prefix)/setup-gre-tunnel.sh" \
       /tmp/setup-gre-tunnel.sh --region "$region" 2>/dev/null && \
       chmod +x /tmp/setup-gre-tunnel.sh && /tmp/setup-gre-tunnel.sh || \
       log 'PHASE=PEER gre setup warn s3 fetch failed'
@@ -546,6 +595,7 @@ run_phase() {
       set_phase complete
       systemctl disable nested-virt-bootstrap.service 2>/dev/null || true
       register_boot_network_recover
+      register_lab_pipeline_service
       log 'PHASE=BOOTSTRAP finished'
       ;;
     complete)

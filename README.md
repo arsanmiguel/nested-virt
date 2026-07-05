@@ -4,7 +4,7 @@
 
 [![End-to-end nested-virt topology — two AZs, KVM, Hyper-V, Ubuntu, GRE overlay](docs/diagrams/end-to-end.png)](docs/diagrams/end-to-end.svg)
 
-**[Build & deploy](docs/BUILD.md)** · **[Network topology](docs/network-diagram.md)** · **[Why this exists](why.md)** · **Proof:** `./bin/invoke-routing-proof.sh --layer all`
+**[Lab deploy — CFN and go](docs/DEPLOY-FROM-CFN.md)** · **[Build & deploy](docs/BUILD.md)** · **[Network topology](docs/network-diagram.md)** · **[Why this exists](why.md)** · **Proof:** `./bin/invoke-routing-proof.sh --layer all`
 
 *Click the diagram for the full-size SVG. Mermaid + packet walk in [docs/network-diagram.md](docs/network-diagram.md).*
 

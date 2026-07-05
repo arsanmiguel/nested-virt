@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Nested virt lab — drop-in template. Upload this file only; no repo, no S3 prep,
+  no publish step. Creates bootstrap bucket, seeds runtime scripts, deploys both sites.
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  VpcCidr:
+    Type: String
+    Default: 172.31.0.0/16
+
+  AdminCidr:
+    Type: String
+    Default: 172.31.0.0/16
+
+  InstanceType:
+    Type: String
+    Default: c7i.metal-48xl
+
+  Site0SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Metal host subnet AZ-a (site 0).
+
+  Site1SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Metal host subnet AZ-b (site 1).
+
+  Site0TransportSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Transport /28 AZ-a.
+
+  Site1TransportSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Transport /28 AZ-b.
+
+  RootNotifyEmail:
+    Type: String
+    Default: ''
+
+  AssociatePublicIp:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+
+Mappings:
+  Release:
+    Bundle:
+      Data: '__BUNDLE_B64__'
+
+Resources:
+  LabBootstrapBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  LabBootstrapBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LabBootstrapBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CloudFormationNestedStackTemplates
+            Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${LabBootstrapBucket.Arn}/nested-virt/cloudformation/*'
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
+  SeedLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: seed-bucket
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt LabBootstrapBucket.Arn
+                  - !Sub '${LabBootstrapBucket.Arn}/*'
+
+  SeedLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt SeedLambdaRole.Arn
+      Timeout: 300
+      Code:
+        ZipFile: |
+__SEED_LAMBDA_ZIPFILE__
+
+  ScriptSeed:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn: LabBootstrapBucket
+    Properties:
+      ServiceToken: !GetAtt SeedLambda.Arn
+      Bucket: !Ref LabBootstrapBucket
+      Bundle: !FindInMap [Release, Bundle, Data]
+
+  Site0Stack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ScriptSeed
+    Properties:
+      TemplateURL: !Sub 'https://${LabBootstrapBucket}.s3.${AWS::Region}.amazonaws.com/nested-virt/cloudformation/site.yaml'
+      Parameters:
+        LaunchInstance: 'true'
+        KeyName: !Ref KeyName
+        VpcId: !Ref VpcId
+        SubnetId: !Ref Site0SubnetId
+        ExtraHostNicSubnetId: !Ref Site0TransportSubnetId
+        VpcCidr: !Ref VpcCidr
+        AdminCidr: !Ref AdminCidr
+        InstanceName: nested-virt-s0-01
+        InstanceType: !Ref InstanceType
+        SiteId: '0'
+        PeerTransportEniIp: ''
+        PeerLabSupernet: ''
+        RootNotifyEmail: !Ref RootNotifyEmail
+        AssociatePublicIp: !Ref AssociatePublicIp
+        BootstrapBucket: !Ref LabBootstrapBucket
+
+  Site1Stack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ScriptSeed
+    Properties:
+      TemplateURL: !Sub 'https://${LabBootstrapBucket}.s3.${AWS::Region}.amazonaws.com/nested-virt/cloudformation/site.yaml'
+      Parameters:
+        LaunchInstance: 'true'
+        KeyName: !Ref KeyName
+        VpcId: !Ref VpcId
+        SubnetId: !Ref Site1SubnetId
+        ExtraHostNicSubnetId: !Ref Site1TransportSubnetId
+        VpcCidr: !Ref VpcCidr
+        AdminCidr: !Ref AdminCidr
+        InstanceName: nested-virt-s1-01
+        InstanceType: !Ref InstanceType
+        SiteId: '1'
+        PeerTransportEniIp: ''
+        PeerLabSupernet: ''
+        RootNotifyEmail: !Ref RootNotifyEmail
+        AssociatePublicIp: !Ref AssociatePublicIp
+        BootstrapBucket: !Ref LabBootstrapBucket
+
+Outputs:
+  BootstrapBucket:
+    Value: !Ref LabBootstrapBucket
+  Site0InstanceId:
+    Value: !GetAtt Site0Stack.Outputs.InstanceId
+  Site1InstanceId:
+    Value: !GetAtt Site1Stack.Outputs.InstanceId
+  Site0PublicIp:
+    Value: !GetAtt Site0Stack.Outputs.PublicIp
+  Site1PublicIp:
+    Value: !GetAtt Site1Stack.Outputs.PublicIp
+  Site0TransportIp:
+    Value: !GetAtt Site0Stack.Outputs.TransportNic1PrivateIp
+  Site1TransportIp:
+    Value: !GetAtt Site1Stack.Outputs.TransportNic1PrivateIp
