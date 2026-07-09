@@ -1,0 +1,16 @@
+[
+  {"ParameterKey": "LaunchInstance", "ParameterValue": "true"},
+  {"ParameterKey": "KeyName", "ParameterValue": "YOUR_KEY_PAIR"},
+  {"ParameterKey": "VpcId", "ParameterValue": "vpc-CHANGE_ME"},
+  {"ParameterKey": "SubnetId", "ParameterValue": "subnet-CHANGE_ME"},
+  {"ParameterKey": "VpcCidr", "ParameterValue": "172.31.0.0/16"},
+  {"ParameterKey": "AdminCidr", "ParameterValue": "172.31.0.0/16"},
+  {"ParameterKey": "InstanceName", "ParameterValue": "nested-virt-s0-01"},
+  {"ParameterKey": "InstanceType", "ParameterValue": "c7i.metal-48xl"},
+  {"ParameterKey": "SiteId", "ParameterValue": "0"},
+  {"ParameterKey": "PeerTransportEniIp", "ParameterValue": ""},
+  {"ParameterKey": "PeerLabSupernet", "ParameterValue": ""},
+  {"ParameterKey": "RootNotifyEmail", "ParameterValue": "you@example.com"},
+  {"ParameterKey": "AssociatePublicIp", "ParameterValue": "true"},
+  {"ParameterKey": "AlarmPeriodSeconds", "ParameterValue": "120"}
+]

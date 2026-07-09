@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Nested virt lab — deploy both AZ sites from S3-hosted site template.
+  Prerequisite: run publish-release.sh once per account (CI) to populate the bootstrap bucket.
+  Operator needs only this template URL + parameters (no local repo checkout).
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 SSH key pair for metal hosts.
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+
+  VpcCidr:
+    Type: String
+    Default: 172.31.0.0/16
+
+  AdminCidr:
+    Type: String
+    Default: 172.31.0.0/16
+
+  InstanceType:
+    Type: String
+    Default: c7i.metal-48xl
+
+  Site0SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Metal host subnet in AZ-a (site 0).
+
+  Site1SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Metal host subnet in AZ-b (site 1).
+
+  Site0TransportSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Transport /28 subnet in AZ-a (kvm-host-nic1).
+
+  Site1TransportSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Transport /28 subnet in AZ-b.
+
+  BootstrapBucket:
+    Type: String
+    Description: >-
+      S3 bucket populated by publish-release.sh (default nested-virt-bootstrap-AccountId).
+
+  RootNotifyEmail:
+    Type: String
+    Default: ''
+
+  AssociatePublicIp:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+
+Conditions:
+  UsePublicIp: !Equals [!Ref AssociatePublicIp, 'true']
+
+Resources:
+  Site0Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${BootstrapBucket}.s3.${AWS::Region}.amazonaws.com/nested-virt/cloudformation/packaged-site.yaml'
+      Parameters:
+        LaunchInstance: 'true'
+        KeyName: !Ref KeyName
+        VpcId: !Ref VpcId
+        SubnetId: !Ref Site0SubnetId
+        ExtraHostNicSubnetId: !Ref Site0TransportSubnetId
+        VpcCidr: !Ref VpcCidr
+        AdminCidr: !Ref AdminCidr
+        InstanceName: nested-virt-s0-01
+        InstanceType: !Ref InstanceType
+        SiteId: '0'
+        PeerTransportEniIp: ''
+        PeerLabSupernet: ''
+        RootNotifyEmail: !Ref RootNotifyEmail
+        AssociatePublicIp: !Ref AssociatePublicIp
+        BootstrapBucket: !Ref BootstrapBucket
+      Tags:
+        - Key: Project
+          Value: nested-virt
+
+  Site1Stack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: Site0Stack
+    Properties:
+      TemplateURL: !Sub 'https://${BootstrapBucket}.s3.${AWS::Region}.amazonaws.com/nested-virt/cloudformation/packaged-site.yaml'
+      Parameters:
+        LaunchInstance: 'true'
+        KeyName: !Ref KeyName
+        VpcId: !Ref VpcId
+        SubnetId: !Ref Site1SubnetId
+        ExtraHostNicSubnetId: !Ref Site1TransportSubnetId
+        VpcCidr: !Ref VpcCidr
+        AdminCidr: !Ref AdminCidr
+        InstanceName: nested-virt-s1-01
+        InstanceType: !Ref InstanceType
+        SiteId: '1'
+        PeerTransportEniIp: ''
+        PeerLabSupernet: ''
+        RootNotifyEmail: !Ref RootNotifyEmail
+        AssociatePublicIp: !Ref AssociatePublicIp
+        BootstrapBucket: !Ref BootstrapBucket
+      Tags:
+        - Key: Project
+          Value: nested-virt
+
+Outputs:
+  Site0InstanceId:
+    Value: !GetAtt Site0Stack.Outputs.InstanceId
+  Site1InstanceId:
+    Value: !GetAtt Site1Stack.Outputs.InstanceId
+  Site0PublicIp:
+    Condition: UsePublicIp
+    Value: !GetAtt Site0Stack.Outputs.PublicIp
+  Site1PublicIp:
+    Condition: UsePublicIp
+    Value: !GetAtt Site1Stack.Outputs.PublicIp
+  Site0TransportIp:
+    Value: !GetAtt Site0Stack.Outputs.TransportNic1PrivateIp
+  Site1TransportIp:
+    Value: !GetAtt Site1Stack.Outputs.TransportNic1PrivateIp
+  BootstrapBucketName:
+    Value: !Ref BootstrapBucket
+  TemplateNote:
+    Value: >-
+      Lab hosts auto-run bootstrap then lab-site-pipeline from S3. Monitor
+      /var/log/amazon/launch-timing.log via SSM. No laptop repo required.
