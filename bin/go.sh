@@ -87,6 +87,8 @@ for s in json.load(sys.stdin).get('StackSummaries', []):
   done
   echo "# Cleared $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${ROOT}/sites.env"
   rm -f "${ROOT}"/.last-stack-site*.env 2>/dev/null || true
+  "${BIN}/clean-lab-ssm.sh" 2>/dev/null || true
+  "${BIN}/sweep-lab-orphans.sh" 2>/dev/null || true
   echo "Teardown complete."
 }
 

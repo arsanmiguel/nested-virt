@@ -239,7 +239,7 @@ S3 for-loops with `\$f` in SSM parameters → 403. Fix: **explicit `aws s3 cp` p
 | `bin/invoke-routing-proof.sh` | Laptop | Layered routing proofs |
 | `bin/check-lab-status.sh` | Laptop | Read SSM/S3 lab verification; reject stale GREEN after redeploy |
 | `bin/clean-lab-ssm.sh` | Laptop | Delete `/nested-virt/lab/*` verification parameters |
-| `bin/teardown-lab.sh` | Laptop | Delete `nested-virt-lab` stack + empty bucket + clean lab SSM |
+| `bin/teardown-lab.sh` | Laptop | Delete `nested-virt-lab` stack, empty site bucket, all `/nested-virt/` SSM, orphan sweep (EBS/ENI/snapshots/logs) |
 | `bin/monitor-lab-until-green.sh` | Laptop | Poll until lab verification GREEN |
 | `experiment-nested-hyperv-cpu.sh` | Metal | CPU model sweep for vmms |
 

@@ -176,6 +176,27 @@ lab_s3_prefix() {
   echo "s3://$(bootstrap_bucket)/nested-virt"
 }
 
+tag_lab_ebs_volumes() {
+  local region iid name site_id vol_ids vid
+  region="$(imds_get placement/region)"
+  iid="$(imds_get instance-id)"
+  name="$(imds_tag Name 2>/dev/null || echo nested-virt-metal)"
+  site_id="$(imds_tag SiteId 2>/dev/null || echo 0)"
+  mapfile -t vol_ids < <(aws ec2 describe-volumes --region "$region" \
+    --filters "Name=attachment.instance-id,Values=${iid}" \
+    --query 'Volumes[].VolumeId' --output text | tr '\t' '\n')
+  for vid in "${vol_ids[@]}"; do
+    [[ -n "$vid" ]] || continue
+    aws ec2 create-tags --region "$region" --resources "$vid" --tags \
+      "Key=Project,Value=nested-virt" \
+      "Key=NestedVirt,Value=lab" \
+      "Key=NestedVirtManaged,Value=lab" \
+      "Key=SiteId,Value=${site_id}" \
+      "Key=Name,Value=${name}-ebs" || log "PHASE=TAGS warn volume=${vid}"
+    log "PHASE=TAGS volume=${vid} Project=nested-virt NestedVirt=lab"
+  done
+}
+
 aws_retry() {
   local n=0
   until "$@"; do
@@ -627,6 +648,7 @@ main() {
   ensure_awscli
   region="$(imds_get placement/region)"
   log "PHASE=REGION region=${region}"
+  tag_lab_ebs_volumes
 
   while [[ "$phase" != complete ]]; do
     run_phase "$phase" "$region"

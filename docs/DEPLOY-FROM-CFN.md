@@ -132,18 +132,23 @@ Each metal host:
 
 ## Teardown
 
-**Cloned repo (recommended):** tears down stack, empties bootstrap bucket if needed, and deletes lab SSM:
+**Cost note:** Metal and orphaned EBS bill while stacks exist - and sometimes after delete. See [COST-POSTMORTEM.md](COST-POSTMORTEM.md) for unit economics and post-teardown volume checks.
+
+**Cloned repo (recommended):** deletes stack, dev site stacks, lab SSM under `/nested-virt/`, and sweeps tagged orphans (EBS, ENI, log groups):
 
 ```bash
 ./bin/teardown-lab.sh
 ```
+
+This removes **stack-managed resources** plus anything tagged `Project=nested-virt`, `NestedVirt=lab`, `NestedVirtManaged=lab`, or `aws:cloudformation:stack-name` starting with `nested-virt`. EBS volumes inherit lab tags at launch (`PropagateTagsToVolumeOnCreation`) and bootstrap re-applies tags on first boot. It does **not** delete your shared `nested-virt-bootstrap-*` script bucket or VPC/subnets you pass as parameters.
 
 **Console / CLI only:**
 
 ```bash
 aws cloudformation delete-stack --stack-name nested-virt-lab
 aws cloudformation wait stack-delete-complete --stack-name nested-virt-lab
-./bin/clean-lab-ssm.sh   # if you cloned - SSM survives stack delete
+./bin/clean-lab-ssm.sh
+./bin/sweep-lab-orphans.sh
 ```
 
 ---

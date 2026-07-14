@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Teardown drop-in nested-virt-lab stack + empty bootstrap bucket + clean lab SSM.
+# Teardown drop-in nested-virt-lab stack + orphans (EBS, ENI, logs, SSM).
 set -euo pipefail
 
 BIN="$(cd "$(dirname "$0")" && pwd)"
@@ -14,7 +14,7 @@ unlock_stack() {
   iids=$(aws cloudformation describe-stack-resources --stack-name "$name" --region "$REGION" \
     --query 'StackResources[?ResourceType==`AWS::EC2::Instance`].PhysicalResourceId' --output text 2>/dev/null || true)
   for iid in $iids; do
-    if [[ -z "$iid" || "$iid" == "None" ]]; then continue; fi
+    [[ -z "$iid" || "$iid" == "None" ]] && continue
     aws ec2 modify-instance-attribute --region "$REGION" --instance-id "$iid" \
       --no-disable-api-termination 2>/dev/null || true
   done
@@ -44,7 +44,8 @@ delete_stack() {
   for nested in $(aws cloudformation list-stack-resources --stack-name "$STACK" --region "$REGION" \
     --query 'StackResourceSummaries[?ResourceType==`AWS::CloudFormation::Stack`].PhysicalResourceId' \
     --output text 2>/dev/null); do
-    if [[ -n "$nested" && "$nested" != "None" ]]; then unlock_stack "$nested"; fi
+    [[ -n "$nested" && "$nested" != "None" ]] || continue
+    unlock_stack "$nested"
   done
 
   aws cloudformation delete-stack --stack-name "$STACK" --region "$REGION"
@@ -63,4 +64,5 @@ delete_stack() {
 "${BIN}/go.sh" --teardown 2>/dev/null || true
 delete_stack
 "${BIN}/clean-lab-ssm.sh"
-echo "Lab teardown complete (stack + SSM)."
+"${BIN}/sweep-lab-orphans.sh"
+echo "Lab teardown complete (stack + SSM + orphan sweep)."

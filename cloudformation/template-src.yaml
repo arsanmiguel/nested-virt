@@ -113,6 +113,12 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-sg'
+        - Key: Project
+          Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
 
   ExtraHostNicSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -134,6 +140,12 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-transport-sg'
+        - Key: Project
+          Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
 
   Ec2Role:
     Type: AWS::IAM::Role
@@ -207,6 +219,8 @@ Resources:
 
   BootstrapTimingLogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub '/nested-virt/bootstrap-timing/${InstanceName}'
       RetentionInDays: 90
@@ -214,6 +228,8 @@ Resources:
 
   CloudWatchAgentConfigParameter:
     Type: AWS::SSM::Parameter
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Name: !Sub '/nested-virt/${InstanceName}/cwagent-config'
       Type: String
@@ -231,6 +247,12 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-primary-nic0'
+        - Key: Project
+          Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
 
   LinuxInstance:
     Type: AWS::EC2::Instance
@@ -251,6 +273,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: 0
           NetworkInterfaceId: !Ref PrimaryHostNic
+      PropagateTagsToVolumeOnCreation: true
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -264,7 +287,7 @@ Resources:
             VolumeType: gp3
             Iops: 16000
             Encrypted: true
-            DeleteOnTermination: false
+            DeleteOnTermination: true
       UserData:
         Fn::Base64:
           Fn::Sub:
@@ -309,6 +332,10 @@ Resources:
           Value: '2'
         - Key: Project
           Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
         - Key: NestedVirtRole
           Value: metal-host
 
@@ -320,6 +347,12 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-eip'
+        - Key: Project
+          Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
 
   MetalPublicEipAssociation:
     Type: AWS::EC2::EIPAssociation
@@ -340,6 +373,12 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-transport-nic1'
+        - Key: Project
+          Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
 
   ExtraHostNic2:
     Type: AWS::EC2::NetworkInterface
@@ -352,6 +391,12 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${InstanceName}-transport-nic2'
+        - Key: Project
+          Value: nested-virt
+        - Key: NestedVirt
+          Value: lab
+        - Key: NestedVirtManaged
+          Value: lab
 
   ExtraHostNic1Attachment:
     Type: AWS::EC2::NetworkInterfaceAttachment
