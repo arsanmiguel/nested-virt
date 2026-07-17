@@ -2,7 +2,7 @@
 
 Symptom → cause → fix index for the **KVM → Hyper-V → Ubuntu** stack on AWS bare metal.
 
-**Related:** [README](../README.md) · [Deploy guide](DEPLOY-FROM-CFN.md) · [Developer guide](BUILD.md) · [Cost post-mortem](COST-POSTMORTEM.md) · [Security design](SECURITY-EXCEPTIONS.md)
+**Related:** [README](../README.md) · [Deploy guide](DEPLOY-FROM-CFN.md) · [Network topology](network-diagram.md) · [Security design](SECURITY-EXCEPTIONS.md) · [Why this exists](../why.md)
 
 **Target stack:**
 

@@ -1,6 +1,6 @@
 # Hyper-V guest on KVM (day 2)
 
-Manual and semi-automated notes for the Windows L1 guest. The **automated path** is [BUILD.md](BUILD.md) phases 2-4 and the drop-in CFN pipeline.
+Manual and semi-automated notes for the Windows L1 guest. The **automated path** is the drop-in CFN pipeline ([DEPLOY-FROM-CFN.md](DEPLOY-FROM-CFN.md)).
 
 **Related:** [Network topology](network-diagram.md) · [Troubleshooting](nested-virt-hiccups.md) · [Security design](SECURITY-EXCEPTIONS.md) (VNC localhost)
 
@@ -61,11 +61,11 @@ Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V
 systeminfo | findstr /i hyper
 ```
 
-For nested Hyper-V on KVM, use `enable-hyperv-nested-host.ps1` after `fix-kvm-nested-hyperv-xml.sh` (see BUILD.md phase 3).
+For nested Hyper-V on KVM, use `enable-hyperv-nested-host.ps1` after `fix-kvm-nested-hyperv-xml.sh` (see [nested-virt-hiccups.md](nested-virt-hiccups.md#17-windows-boot-loop-after-hyper-v-enable-on-8488c-skylake-cpu-model)).
 
 ## 4. Inner VM (nested layer 2)
 
-**Automated path (recommended):** see [BUILD.md](BUILD.md) phase 4.
+**Automated path (recommended):** drop-in CFN deploy — see [DEPLOY-FROM-CFN.md](DEPLOY-FROM-CFN.md). L2 issues: [nested-virt-hiccups.md](nested-virt-hiccups.md#18-inner-ubuntu-on-hyper-v-gen2-boot-order-cloud-init-and-image-version).
 
 ```bash
 ./bin/deploy-inner-ubuntu.sh              # both sites (developer workflow)
@@ -90,11 +90,9 @@ Creates external vSwitch **`NestedVirt-Lab`**, Ubuntu 24.04 Gen2 VM at `10.{site
 | Can't ping peer site lab | `bin/configure-peer-routing.sh`, GRE (hiccup #10) |
 | Same IP on both sites | SiteId must differ (0 vs 1); hiccup #11 |
 
-## re:Invent demo beat
+## Demo beat (optional)
 
 1. Show `invoke-routing-proof.sh --layer l0` (VPC transport)
 2. Show `--layer l1` (peer bridge gateways)
 3. RDP to Windows guest, Hyper-V Manager with inner VM running
-4. Inner VM ping across AZ - the money shot
-
-Session framing: [reinvent-pitch.md](reinvent-pitch.md)
+4. Inner VM ping across AZ

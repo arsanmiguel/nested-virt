@@ -2,7 +2,7 @@
 
 Color-coded map of every network in the **nested-virt** two-AZ lab. The hero diagram is linked at the top of [README.md](../README.md).
 
-**Related:** [BUILD.md](BUILD.md) · [DEPLOY-FROM-CFN.md](DEPLOY-FROM-CFN.md) · [nested-virt-hiccups.md](nested-virt-hiccups.md) · [SECURITY-EXCEPTIONS.md](SECURITY-EXCEPTIONS.md)
+**Related:** [DEPLOY-FROM-CFN.md](DEPLOY-FROM-CFN.md) · [nested-virt-hiccups.md](nested-virt-hiccups.md) · [SECURITY-EXCEPTIONS.md](SECURITY-EXCEPTIONS.md) · [Why this exists](../why.md)
 
 ## Legend (color = network domain)
 
@@ -209,7 +209,7 @@ flowchart TB
 
 ## Additional lab bridges (provisioned, not on critical path)
 
-`bootstrap.sh` creates extra bridges for future chaos / multi-segment demos. Each uses `10.{site}.*`:
+`bootstrap.sh` creates extra bridges for optional multi-segment demos. Each uses `10.{site}.*`:
 
 | Bridge | Gateway | Purpose |
 |--------|---------|---------|
@@ -255,4 +255,4 @@ Scripts land on metal via **S3 bootstrap bucket** + SSM. **Win2022.iso** and **v
 
 ---
 
-*See [BUILD.md](BUILD.md) for developer workflow, [DEPLOY-FROM-CFN.md](DEPLOY-FROM-CFN.md) for operator deploy, and [nested-virt-hiccups.md](nested-virt-hiccups.md) when a layer lies.*
+*See [DEPLOY-FROM-CFN.md](DEPLOY-FROM-CFN.md) for operator deploy and [nested-virt-hiccups.md](nested-virt-hiccups.md) when a layer lies.*

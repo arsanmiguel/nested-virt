@@ -6,7 +6,7 @@ No repo clone. No laptop scripts. No pre-seeded S3 bucket. The template creates 
 
 Win2022.iso is downloaded over HTTPS during bootstrap (Microsoft evaluation CDN by default).
 
-**Related:** [README](../README.md) · [Developer guide](BUILD.md) (optional clone) · [Troubleshooting](nested-virt-hiccups.md) · [Security design](SECURITY-EXCEPTIONS.md)
+**Related:** [README](../README.md) · [Troubleshooting](nested-virt-hiccups.md) · [Security design](SECURITY-EXCEPTIONS.md) · [Why this exists](../why.md)
 
 ---
 
@@ -132,7 +132,7 @@ Each metal host:
 
 ## Teardown
 
-**Cost note:** Metal and orphaned EBS bill while stacks exist - and sometimes after delete. See [COST-POSTMORTEM.md](COST-POSTMORTEM.md) for unit economics and post-teardown volume checks.
+**Cost note:** Metal and orphaned EBS bill while stacks exist — and sometimes after delete. After teardown, run `./bin/sweep-lab-orphans.sh` and check EC2 → Volumes for untagged leftovers.
 
 **Cloned repo (recommended):** deletes stack, dev site stacks, lab SSM under `/nested-virt/`, and sweeps tagged orphans (EBS, ENI, log groups):
 
@@ -180,6 +180,6 @@ aws ssm get-parameter --name /nested-virt/lab/verification \
 
 ## Maintainer notes
 
-- Regenerate drop-in template after script changes: `python3 cloudformation/build-drop-in-template.py`
-- In-repo development (per-site stacks, `go.sh`): [BUILD.md](BUILD.md)
+- Regenerate drop-in template after on-metal script changes: `python3 cloudformation/build-drop-in-template.py`
 - **CSE / security scan:** `./scripts/security-scan.sh` and [SECURITY-EXCEPTIONS.md](SECURITY-EXCEPTIONS.md#cse--security-scan-handoff)
+- Optional clone helpers (teardown, poll, proofs): `bin/teardown-lab.sh`, `bin/monitor-lab-until-green.sh`, `bin/check-lab-status.sh`, `bin/invoke-routing-proof.sh`

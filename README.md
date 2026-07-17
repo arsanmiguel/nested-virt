@@ -4,7 +4,7 @@
 
 **One CloudFormation template runs the full lab** - no repo clone, no laptop scripts, no publisher setup. Upload [`cloudformation/nested-virt-lab.yaml`](cloudformation/nested-virt-lab.yaml), wait for `CREATE_COMPLETE`, then the on-instance pipeline finishes automatically (~**40-90 min**).
 
-**[Deploy](docs/DEPLOY-FROM-CFN.md)** · **[Developer guide](docs/BUILD.md)** · **[Network topology](docs/network-diagram.md)** · **[Troubleshooting](docs/nested-virt-hiccups.md)** · **[Cost post-mortem](docs/COST-POSTMORTEM.md)** · **[Security design](docs/SECURITY-EXCEPTIONS.md)** · **[Why this exists](why.md)**
+**[Deploy](docs/DEPLOY-FROM-CFN.md)** · **[Network topology](docs/network-diagram.md)** · **[Troubleshooting](docs/nested-virt-hiccups.md)** · **[Windows guest notes](docs/hyperv-guest.md)** · **[Security design](docs/SECURITY-EXCEPTIONS.md)** · **[Why this exists](why.md)**
 
 **Internal review:** CSE / security scan scope, scan commands, and documented exceptions are in [**docs/SECURITY-EXCEPTIONS.md**](docs/SECURITY-EXCEPTIONS.md#cse--security-scan-handoff). Run `./scripts/security-scan.sh` before handoff.
 
